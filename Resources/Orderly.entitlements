@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- 清理工具需要读写其他 App 的缓存与容器目录，无法在 App Sandbox 内工作 -->
+	<key>com.apple.security.app-sandbox</key>
+	<false/>
+</dict>
+</plist>

@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# 构建 Orderly.app（仅 Apple 芯片 arm64）
+#
+# 用法：
+#   Scripts/build-app.sh                 # release 构建，ad-hoc 签名
+#   CONFIG=debug Scripts/build-app.sh    # debug 构建
+#   SIGN_IDENTITY="Apple Development: Name (TEAMID)" Scripts/build-app.sh
+#
+# 注意：ad-hoc 签名的 App 每次重新构建后签名都会变化，
+# 系统会把它当成新 App，需要重新授予「完全磁盘访问权限」。
+# 日常开发建议设置 SIGN_IDENTITY 使用固定的开发者证书。
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+CONFIG="${CONFIG:-release}"
+SIGN_IDENTITY="${SIGN_IDENTITY:--}"
+APP_NAME="Orderly"
+APP="$ROOT/build/$APP_NAME.app"
+
+cd "$ROOT"
+
+echo "▸ swift build ($CONFIG, arm64)"
+"$ROOT/Scripts/swift.sh" build -c "$CONFIG" --arch arm64
+BIN_DIR="$("$ROOT/Scripts/swift.sh" build -c "$CONFIG" --arch arm64 --show-bin-path)"
+
+ARCHS="$(lipo -archs "$BIN_DIR/$APP_NAME")"
+if [[ "$ARCHS" != "arm64" ]]; then
+    echo "✗ 期望仅包含 arm64，实际为：$ARCHS" >&2
+    exit 1
+fi
+
+echo "▸ 组装 $APP"
+rm -rf "$APP"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+cp "$BIN_DIR/$APP_NAME" "$APP/Contents/MacOS/$APP_NAME"
+cp "$ROOT/Resources/Info.plist" "$APP/Contents/Info.plist"
+printf 'APPL????' > "$APP/Contents/PkgInfo"
+
+# SwiftPM 生成的资源包（目前没有，预留）
+for bundle in "$BIN_DIR"/*.bundle; do
+    [[ -e "$bundle" ]] && cp -R "$bundle" "$APP/Contents/Resources/"
+done
+
+echo "▸ 签名（identity: $SIGN_IDENTITY）"
+codesign --force --options runtime --timestamp=none \
+    --entitlements "$ROOT/Resources/Orderly.entitlements" \
+    --sign "$SIGN_IDENTITY" \
+    "$APP"
+
+echo "✓ 已生成 $APP"

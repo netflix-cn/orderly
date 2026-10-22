@@ -6,6 +6,10 @@ macOS 磁盘清理工具。
 - 启动后引导开启「完全磁盘访问权限」
 - 扫描系统垃圾、应用缓存、大文件，结果默认按 App 分组，勾选后清理
 
+> [!WARNING]
+> 本软件会**永久删除**文件。使用前请先备份重要数据，并阅读文末的[免责声明](#免责声明--disclaimer)。
+> 构建、运行或分发本项目，即表示你同意该声明。
+
 ## 构建与运行
 
 需要 Swift 6 工具链（Xcode 16+ 或 Command Line Tools 16+）。
@@ -82,3 +86,47 @@ Scripts/            打包脚本
 
 - 只扫描当前用户的个人目录，不处理 `/Library`、`/private/var` 等需要管理员权限的位置
 - 尚未做 App 图标、多语言、设置页（大文件阈值等目前写在 `ScanConfiguration` 中）
+
+## 许可证
+
+Copyright © 2026 nanashi@top.ge
+
+本项目基于 [MIT 许可证](LICENSE) 开源。
+
+## 免责声明 / Disclaimer
+
+本声明是对 [LICENSE](LICENSE) 中免责条款的补充说明。
+
+本项目源码及由其构建的任何程序均按「原样」提供，不附带任何明示或暗示的担保，
+包括但不限于对适销性、特定用途适用性、扫描结果准确性及不侵权的担保。
+
+1. **删除风险**：本软件会永久删除缓存、日志、废纸篓等文件，或将文件移到废纸篓。
+   被永久删除的文件通常无法恢复。清理前请自行确认勾选的项目，并使用 Time Machine 等方式备份重要数据。
+2. **安全措施不构成保证**：项目中的安全检查、默认勾选策略和归属判断只能降低误删风险，不能完全避免。
+   扫描结果可能不准确，某些被判断为可清理的文件可能仍被 App 或系统使用。
+3. **责任限制**：因使用、修改、构建或分发本项目源码（包括任何第三方修改或构建的版本），
+   或因无法使用本软件而造成的任何直接、间接、附带、特殊或后果性损失，
+   包括但不限于文件误删、数据丢失、App 或系统异常、业务中断，
+   作者及贡献者均不承担任何责任，即使事先已被告知发生此类损失的可能性。
+4. **第三方构建**：他人使用本源码构建、修改或分发的程序与本项目作者无关，作者不对其行为及后果负责。
+5. **风险自负**：你须自行承担使用本软件的全部风险。如不同意本声明，请勿构建、运行或分发本项目。
+
+在适用法律不允许排除或限制上述责任的范围内，作者的责任以法律允许的最小范围为限。
+
+---
+
+This source code and any software built from it are provided "AS IS", without warranty of any kind,
+express or implied, including but not limited to the warranties of merchantability, fitness for a
+particular purpose, accuracy of scan results, and non-infringement.
+
+The software permanently deletes files (such as caches, logs and Trash contents) or moves them to the
+Trash; permanently deleted files usually cannot be recovered. Its safety checks and default selections
+reduce, but do not eliminate, the risk of deleting files that are still needed. Review your selection
+and back up important data before cleaning.
+
+In no event shall the authors or contributors be liable for any direct, indirect, incidental, special
+or consequential damages, including but not limited to accidental file deletion, data loss, application
+or system malfunction, or business interruption, arising from the use, modification, building or
+distribution of this source code (including versions modified or built by third parties), or from the
+inability to use the software, even if advised of the possibility of such damages. You use this
+software entirely at your own risk; if you do not agree, do not build, run or distribute it.

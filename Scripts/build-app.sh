@@ -41,7 +41,7 @@ for bundle in "$BIN_DIR"/*.bundle; do
     [[ -e "$bundle" ]] && cp -R "$bundle" "$APP/Contents/Resources/"
 done
 
-echo "▸ 签名（identity: $SIGN_IDENTITY）"
+echo "▸ 签名（identity: ${SIGN_IDENTITY}）"
 codesign --force --options runtime --timestamp=none \
     --entitlements "$ROOT/Resources/Orderly.entitlements" \
     --sign "$SIGN_IDENTITY" \

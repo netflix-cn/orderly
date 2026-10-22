@@ -1,8 +1,77 @@
-.DS_Store
-/.build
-/build
-/.swiftpm
-/Packages
-*.xcodeproj/xcuserdata
-*.xcworkspace/xcuserdata
+# ---------- 编译产物 ----------
+# SwiftPM 构建目录（含 Scripts/swift.sh 生成的 swiftpm-fix）
+/.build/
+# Scripts/build-app.sh 输出的 Orderly.app
+/build/
+# 分发用的安装包
+/dist/
+*.dmg
+*.pkg
+*.xcarchive
+*.dSYM/
+*.dSYM.zip
+*.app/
+*.ipa
+
+# ---------- Xcode / SwiftPM ----------
 DerivedData/
+/.swiftpm/
+/Packages/
+Package.resolved.orig
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+*.moved-aside
+*.hmap
+xcuserdata/
+timeline.xctimeline
+playground.xcworkspace
+
+# ---------- 签名与敏感文件 ----------
+# 证书、私钥、描述文件
+*.p12
+*.pfx
+*.cer
+*.crt
+*.der
+*.pem
+*.key
+*.certSigningRequest
+*.mobileprovision
+*.provisionprofile
+*.keychain
+*.keychain-db
+# App Store Connect / 公证用的 API 密钥（AuthKey_XXXX.p8）
+*.p8
+# 环境变量与本地凭据（签名身份、公证账号密码等）
+.env
+.env.*
+!.env.example
+*.secret
+*.secrets
+secrets/
+notarize.local.*
+# Claude Code 本地设置
+.claude/settings.local.json
+
+# ---------- 系统与编辑器 ----------
+.DS_Store
+._*
+.AppleDouble
+.LSOverride
+Icon?
+.Spotlight-V100
+.Trashes
+.fseventsd
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ---------- 日志与临时文件 ----------
+*.log
+*.tmp

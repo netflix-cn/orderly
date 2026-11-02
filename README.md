@@ -48,9 +48,24 @@ Sources/Orderly/
 ├── Cleaner/        清理执行与删除前的安全检查（SafetyGuard）
 ├── Views/          SwiftUI 界面
 └── Support/        主题、格式化等
-Resources/          Info.plist、entitlements
+Sources/OrderlyWidget/  桌面小组件扩展（打包为 Orderly.app/Contents/PlugIns/OrderlyWidget.appex）
+├── CalendarWidget      小组件定义与时间线（每天零点刷新）
+├── CalendarWidgetView  大号日历界面
+├── MonthCalendar       公历：月历排布、第几天/第几周、星座
+└── ChineseCalendar     农历、节气、月相、干支（目前为模拟数据）
+Resources/          Info.plist、entitlements（App 与小组件各一份）
 Scripts/            打包脚本
 ```
+
+## 桌面小组件
+
+大号「日历」小组件：月历、星期、农历、节气、月相、干支纪年。
+
+- 农历、节气、月相、干支目前是 `MockChineseCalendar` 中的模拟数据，只覆盖公历 2026-10-10 至 2026-12-08；
+  超出范围的日期不显示农历行。替换为真实算法时实现 `ChineseCalendarSource` 即可
+- 扩展必须启用 App Sandbox（见 `Resources/OrderlyWidget.entitlements`），不需要其他权限
+- 建议用固定证书签名（`SIGN_IDENTITY`），ad-hoc 签名每次构建都会变化，小组件可能不出现或不刷新
+- `make run` 启动一次 App 后，在桌面右键 →「编辑小组件」→ 搜索 Orderly，添加大号「日历」
 
 ## 流程
 

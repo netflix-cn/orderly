@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>zh_CN</string>
+	<key>CFBundleAllowMixedLocalizations</key>
+	<true/>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>zh-Hans</string>
+	</array>
+	<key>CFBundleExecutable</key>
+	<string>OrderlyWidget</string>
+	<!-- 必须以宿主 App 的 bundle ID 开头 -->
+	<key>CFBundleIdentifier</key>
+	<string>com.orderly.Orderly.Widget</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>OrderlyWidget</string>
+	<key>CFBundleDisplayName</key>
+	<string>Orderly</string>
+	<key>CFBundlePackageType</key>
+	<string>XPC!</string>
+	<!-- 版本号打包时从 Resources/Info.plist 同步，与宿主 App 保持一致 -->
+	<key>CFBundleShortVersionString</key>
+	<string>0.1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>15.0</string>
+	<key>NSExtension</key>
+	<dict>
+		<key>NSExtensionPointIdentifier</key>
+		<string>com.apple.widgetkit-extension</string>
+	</dict>
+	<key>NSHumanReadableCopyright</key>
+	<string>© 2026 Orderly</string>
+</dict>
+</plist>

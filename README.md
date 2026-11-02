@@ -51,7 +51,7 @@ Sources/Orderly/
 Sources/OrderlyWidget/  桌面小组件扩展（打包为 Orderly.app/Contents/PlugIns/OrderlyWidget.appex）
 ├── CalendarWidget      小组件定义与时间线（每天零点刷新）
 ├── CalendarWidgetView  大号日历界面
-├── MonthCalendar       公历：月历排布、第几天/第几周、星座
+├── WeekCalendar        公历：前后五周排布、第几天/第几周、星座
 └── ChineseCalendar     农历、节气、月相、干支（目前为模拟数据）
 Resources/          Info.plist、entitlements（App 与小组件各一份）
 Scripts/            打包脚本
@@ -59,7 +59,8 @@ Scripts/            打包脚本
 
 ## 桌面小组件
 
-大号「日历」小组件：月历、星期、农历、节气、月相、干支纪年。
+大号「日历」小组件：星期、农历、节气、月相、干支纪年。日期区固定 5 行，本周在第 3 行，
+上下依次为前两周、前一周、后一周、后两周；不属于本月的日期变暗显示。
 
 - 农历、节气、月相、干支目前是 `MockChineseCalendar` 中的模拟数据，只覆盖公历 2026-10-10 至 2026-12-08；
   超出范围的日期不显示农历行。替换为真实算法时实现 `ChineseCalendarSource` 即可

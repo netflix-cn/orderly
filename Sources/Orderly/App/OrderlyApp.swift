@@ -5,6 +5,10 @@ struct OrderlyApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var model = AppModel()
 
+    init() {
+        BundledFont.register()
+    }
+
     var body: some Scene {
         Window("Orderly", id: "main") {
             RootView()

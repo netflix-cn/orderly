@@ -50,6 +50,12 @@ for key in CFBundleShortVersionString CFBundleVersion; do
     /usr/libexec/PlistBuddy -c "Set :$key $value" "$APPEX/Contents/Info.plist"
 done
 
+# 界面字体：App 与小组件是两个进程，各自从自己的包内注册，所以各放一份
+for dir in "$APP" "$APPEX"; do
+    mkdir -p "$dir/Contents/Resources/Fonts"
+    cp "$ROOT"/Resources/Fonts/*.ttf "$dir/Contents/Resources/Fonts/"
+done
+
 # SwiftPM 生成的资源包（目前没有，预留）
 for bundle in "$BIN_DIR"/*.bundle; do
     [[ -e "$bundle" ]] && cp -R "$bundle" "$APP/Contents/Resources/"

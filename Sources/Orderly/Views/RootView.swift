@@ -26,6 +26,8 @@ struct RootView: View {
         }
         .transition(.opacity)
         .frame(minWidth: 900, minHeight: 620)
+        // 没有单独指定字体的文字、按钮等都用江西拙楷
+        .font(.app(.body))
         // 界面文案目前只有中文，日期等格式也统一使用中文；加入多语言后移除
         .environment(\.locale, Locale(identifier: "zh_Hans_CN"))
         .animation(.easeInOut(duration: 0.25), value: model.phase)    }

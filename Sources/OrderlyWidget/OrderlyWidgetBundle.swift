@@ -4,7 +4,7 @@ import WidgetKit
 @main
 struct OrderlyWidgetBundle: WidgetBundle {
     init() {
-        DownloadableFonts.activate()
+        BundledFont.register()
     }
 
     var body: some Widget {

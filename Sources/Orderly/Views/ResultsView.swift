@@ -14,9 +14,16 @@ struct ResultsView: View {
             if let group = results.focusedGroup {
                 GroupDetailView(results: results, group: group)
             } else if results.groups.isEmpty {
-                ContentUnavailableView("没有发现可清理的项目", systemImage: "checkmark.seal", description: Text("你的 Mac 很整洁。"))
+                // ContentUnavailableView 会给标题、说明套上自己的系统字体，字体要直接加在 Text 上
+                ContentUnavailableView {
+                    Label { Text("没有发现可清理的项目").font(.app(.title2)) } icon: { Image(systemName: "checkmark.seal") }
+                } description: {
+                    Text("你的 Mac 很整洁。").font(.app(.body))
+                }
             } else {
-                ContentUnavailableView("选择左侧的分组查看详情", systemImage: "sidebar.left")
+                ContentUnavailableView {
+                    Label { Text("选择左侧的分组查看详情").font(.app(.title2)) } icon: { Image(systemName: "sidebar.left") }
+                }
             }
         }
         .navigationTitle("扫描结果")
@@ -99,23 +106,24 @@ private struct ResultsSidebar: View {
                     Text("\(results.groups.count) 个\(results.grouping == .byApp ? "应用" : "类型")")
                     Spacer()
                     Text("共 \(results.totalSize.formattedBytes)")
-                        .monospacedDigit()
                 }
+                // 侧边栏分组标题有自己的系统字体
+                .font(.app(.subheadline))
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
             if !results.skippedRuleTitles.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
                     Label("部分位置未扫描", systemImage: "exclamationmark.shield.fill")
-                        .font(.callout.weight(.medium))
+                        .font(.app(.callout))
                         .foregroundStyle(.orange)
                     Text("缺少完全磁盘访问权限，未扫描：\(results.skippedRuleTitles.joined(separator: "、"))")
-                        .font(.caption)
+                        .font(.app(.caption))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                     Button("去授权") { model.showPermission() }
                         .buttonStyle(.link)
-                        .font(.caption)
+                        .font(.app(.caption))
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(12)
@@ -149,12 +157,12 @@ private struct GroupRow: View {
                     }
                 }
                 Text("\(group.items.count) 项")
-                    .font(.caption)
+                    .font(.app(.caption))
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 8)
             Text(group.totalSize.formattedBytes)
-                .font(.callout.monospacedDigit())
+                .font(.app(.callout))
                 .foregroundStyle(.secondary)
         }
         .padding(.vertical, 3)
@@ -173,10 +181,10 @@ private struct GroupDetailView: View {
                 GroupIcon(header: group.header, size: 48)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(group.title)
-                        .font(.title2.bold())
+                        .font(.app(.title2))
                         .lineLimit(1)
                     Text(subtitle)
-                        .font(.callout)
+                        .font(.app(.callout))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
@@ -184,9 +192,9 @@ private struct GroupDetailView: View {
                 Spacer()
                 VStack(alignment: .trailing, spacing: 4) {
                     Text(group.totalSize.formattedBytes)
-                        .font(.title2.bold().monospacedDigit())
+                        .font(.app(.title2))
                     Text("已选 \(results.selectedSize(in: group).formattedBytes)")
-                        .font(.callout.monospacedDigit())
+                        .font(.app(.callout))
                         .foregroundStyle(.secondary)
                 }
             }
@@ -194,7 +202,7 @@ private struct GroupDetailView: View {
 
             if group.isRunning {
                 Label("\(group.title) 正在运行，清理其缓存前建议先退出该 App。默认未勾选。", systemImage: "exclamationmark.triangle.fill")
-                    .font(.callout)
+                    .font(.app(.callout))
                     .foregroundStyle(.orange)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 20)
@@ -212,7 +220,7 @@ private struct GroupDetailView: View {
                 Text("大小")
                     .frame(width: 80, alignment: .trailing)
             }
-            .font(.callout)
+            .font(.app(.callout))
             .foregroundStyle(.secondary)
             .padding(.horizontal, 20)
             .padding(.vertical, 8)
@@ -259,7 +267,7 @@ private struct ItemRow: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Text(item.displayPath)
-                    .font(.caption)
+                    .font(.app(.caption))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
@@ -268,12 +276,12 @@ private struct ItemRow: View {
             TagLabel(text: item.kind, color: Theme.color(for: item.category))
             if let date = item.modificationDate {
                 Text(date, format: Date.FormatStyle(date: .numeric, time: .omitted))
-                    .font(.caption.monospacedDigit())
+                    .font(.app(.caption))
                     .foregroundStyle(.tertiary)
                     .frame(width: 84, alignment: .trailing)
             }
             Text(item.size.formattedBytes)
-                .font(.callout.monospacedDigit())
+                .font(.app(.callout))
                 .frame(width: 80, alignment: .trailing)
         }
         .padding(.vertical, 2)
@@ -301,9 +309,9 @@ private struct CleanBar: View {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("已选择 \(results.selectedCount) 项")
-                        .font(.headline)
+                        .font(.app(.title3))
                     Text("共发现 \(results.items.count) 项，\(results.totalSize.formattedBytes)")
-                        .font(.caption)
+                        .font(.app(.caption))
                         .foregroundStyle(.secondary)
                 }
                 Spacer()

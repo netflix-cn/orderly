@@ -53,9 +53,18 @@ Sources/OrderlyWidget/  桌面小组件扩展（打包为 Orderly.app/Contents/P
 ├── CalendarWidgetView  大号日历界面
 ├── WeekCalendar        公历：前后五周排布、第几天/第几周、星座
 └── ChineseCalendar     农历、节气、月相、干支（目前为模拟数据）
-Resources/          Info.plist、entitlements（App 与小组件各一份）
+Resources/          Info.plist、entitlements（App 与小组件各一份）、Fonts/ 界面字体
 Scripts/            打包脚本
 ```
+
+## 字体
+
+App 和小组件的界面统一使用江西拙楷 2.0（黄煜臣，`Resources/Fonts/JiangxiZhuokai.ttf`）。
+打包时复制进 App 和小组件扩展各一份，启动时注册到本进程（`BundledFont`），不需要安装或联网。
+
+- 字体只有一个字重、数字不等宽：`.bold()`、`.monospacedDigit()` 不起作用，层级靠字号区分
+- 菜单栏、窗口标题、工具栏分段控件、确认对话框、右键菜单由系统绘制，仍是系统字体
+- 直接运行未打包的可执行文件（`swift run`）时找不到字体，会退回系统字体
 
 ## 桌面小组件
 

@@ -85,7 +85,7 @@ struct TagLabel: View {
 
     var body: some View {
         Text(text)
-            .font(.caption2.weight(.medium))
+            .font(.app(.caption2))
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .foregroundStyle(color)

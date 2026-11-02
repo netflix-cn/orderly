@@ -11,19 +11,19 @@ struct ScanningView: View {
 
             ProgressRing(fraction: progress.fraction) {
                 Text(progress.foundBytes.formattedBytes)
-                    .font(.system(size: 30, weight: .bold, design: .rounded).monospacedDigit())
+                    .font(.app(size: 30))
                     .contentTransition(.numericText())
                     .animation(.default, value: progress.foundBytes)
                 Text("已发现")
-                    .font(.callout)
+                    .font(.app(.callout))
                     .foregroundStyle(.secondary)
             }
 
             VStack(spacing: 6) {
                 Text("正在扫描…")
-                    .font(.title2.bold())
+                    .font(.app(.title2))
                 Text(progress.currentPath.isEmpty ? "正在准备" : progress.currentPath)
-                    .font(.callout.monospaced())
+                    .font(.app(.callout))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
@@ -92,15 +92,15 @@ private struct CategoryProgressRow: View {
             SymbolTile(symbol: category.symbol, tint: Theme.color(for: category), size: 28)
             VStack(alignment: .leading, spacing: 2) {
                 Text(category.title)
-                    .font(.body.weight(.medium))
+                    .font(.app(.body))
                 Text(statusText)
-                    .font(.caption)
+                    .font(.app(.caption))
                     .foregroundStyle(.secondary)
             }
             Spacer()
             if state.bytes > 0 {
                 Text(state.bytes.formattedBytes)
-                    .font(.callout.monospacedDigit())
+                    .font(.app(.callout))
                     .foregroundStyle(.secondary)
                     .contentTransition(.numericText())
             }

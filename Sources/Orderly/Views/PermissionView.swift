@@ -21,7 +21,7 @@ struct PermissionView: View {
 
             VStack(spacing: 10) {
                 Text("需要「完全磁盘访问权限」")
-                    .font(.largeTitle.bold())
+                    .font(.app(.largeTitle))
                 Text("Orderly 需要读取各个 App 的缓存、日志和容器目录，才能完整找出可清理的文件。\n所有扫描都在本机完成，不会上传任何数据。")
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
@@ -64,7 +64,7 @@ struct PermissionView: View {
                     }
                     .buttonStyle(.link)
                 }
-                .font(.callout)
+                .font(.app(.callout))
                 .transition(.opacity)
             }
 
@@ -74,7 +74,7 @@ struct PermissionView: View {
                 model.skipPermission()
             }
             .buttonStyle(.link)
-            .font(.callout)
+            .font(.app(.callout))
         }
         .padding(40)
         .animation(.default, value: hasOpenedSettings)
@@ -98,7 +98,7 @@ private struct StepRow: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
             Text("\(number)")
-                .font(.callout.bold().monospacedDigit())
+                .font(.app(.callout))
                 .foregroundStyle(.white)
                 .frame(width: 22, height: 22)
                 .background(Theme.heroGradient, in: Circle())

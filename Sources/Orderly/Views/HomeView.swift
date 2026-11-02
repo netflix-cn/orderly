@@ -11,7 +11,7 @@ struct HomeView: View {
 
             VStack(spacing: 8) {
                 Text("Orderly")
-                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .font(.app(size: 34))
                 Text("让你的 Mac 保持井井有条")
                     .foregroundStyle(.secondary)
             }
@@ -66,7 +66,7 @@ private struct ScanButton: View {
                     Image(systemName: "sparkle.magnifyingglass")
                         .font(.system(size: 36, weight: .semibold))
                     Text("开始扫描")
-                        .font(.title2.bold())
+                        .font(.app(.title2))
                 }
                 .foregroundStyle(.white)
             }
@@ -92,9 +92,9 @@ private struct CategoryCard: View {
         VStack(alignment: .leading, spacing: 10) {
             SymbolTile(symbol: category.symbol, tint: Theme.color(for: category), size: 34)
             Text(category.title)
-                .font(.headline)
+                .font(.app(.title3))
             Text(category.summary)
-                .font(.callout)
+                .font(.app(.callout))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
@@ -112,10 +112,10 @@ private struct DiskUsageBar: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Label(usage.name, systemImage: "internaldrive")
-                    .font(.callout.weight(.medium))
+                    .font(.app(.callout))
                 Spacer()
                 Text("可用 \(usage.available.formattedBytes)，共 \(usage.total.formattedBytes)")
-                    .font(.callout.monospacedDigit())
+                    .font(.app(.callout))
                     .foregroundStyle(.secondary)
             }
             GeometryReader { proxy in
@@ -139,7 +139,7 @@ private struct PermissionFooter: View {
     var body: some View {
         if model.hasFullDiskAccess {
             Label("已获得完全磁盘访问权限", systemImage: "checkmark.shield.fill")
-                .font(.callout)
+                .font(.app(.callout))
                 .foregroundStyle(.green)
         } else {
             HStack(spacing: 6) {
@@ -148,7 +148,7 @@ private struct PermissionFooter: View {
                 Button("去授权") { model.showPermission() }
                     .buttonStyle(.link)
             }
-            .font(.callout)
+            .font(.app(.callout))
         }
     }
 }

@@ -11,18 +11,18 @@ struct CleaningView: View {
 
             ProgressRing(fraction: progress.fraction) {
                 Text(progress.fraction, format: .percent.precision(.fractionLength(0)))
-                    .font(.system(size: 34, weight: .bold, design: .rounded).monospacedDigit())
+                    .font(.app(size: 34))
                     .contentTransition(.numericText())
                 Text("\(progress.completed) / \(progress.total)")
-                    .font(.callout.monospacedDigit())
+                    .font(.app(.callout))
                     .foregroundStyle(.secondary)
             }
 
             VStack(spacing: 6) {
                 Text("正在清理…")
-                    .font(.title2.bold())
+                    .font(.app(.title2))
                 Text(progress.currentPath)
-                    .font(.callout.monospaced())
+                    .font(.app(.callout))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
@@ -52,9 +52,9 @@ struct CleanSummaryView: View {
 
             VStack(spacing: 8) {
                 Text("清理完成")
-                    .font(.largeTitle.bold())
+                    .font(.app(.largeTitle))
                 Text("已释放 \(report.freedBytes.formattedBytes)")
-                    .font(.title2.monospacedDigit())
+                    .font(.app(.title2))
                 if report.trashedBytes > 0 {
                     Text("另有 \(report.trashedBytes.formattedBytes) 已移到废纸篓，清空废纸篓后释放。")
                         .foregroundStyle(.secondary)
@@ -94,11 +94,11 @@ private struct FailureList: View {
                     ForEach(failures) { failure in
                         VStack(alignment: .leading, spacing: 2) {
                             Text(failure.path)
-                                .font(.callout)
+                                .font(.app(.callout))
                                 .lineLimit(1)
                                 .truncationMode(.middle)
                             Text(failure.reason)
-                                .font(.caption)
+                                .font(.app(.caption))
                                 .foregroundStyle(.secondary)
                         }
                     }

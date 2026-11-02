@@ -18,43 +18,37 @@ struct CalendarWidgetView: View {
 
     private var header: some View {
         HStack(alignment: .center, spacing: 0) {
-            // 数字用宋体，汉字用楷体；两者的相对位置按参考图校准
-            HStack(alignment: .firstTextBaseline, spacing: -3.5) {
+            // 数字与汉字同一字体，按基线对齐即可
+            HStack(alignment: .firstTextBaseline, spacing: 1) {
                 Text(verbatim: "\(today.month)")
-                    .font(.songti(39))
-                    .tracking(0.75)
-                    .offset(y: 3.5)
+                    .font(.zhuokai(39))
                 Text(verbatim: "月")
-                    .font(.kaiti(35))
+                    .font(.zhuokai(35))
             }
             .foregroundStyle(CalendarStyle.text)
             VStack(alignment: .leading, spacing: -5.5) {
                 // 不用 Text 插值拼接：小组件里插值进来的 Text 不会显示
                 HStack(alignment: .firstTextBaseline, spacing: 0) {
                     Text(verbatim: "\(today.day)")
-                        .font(.songti(19))
+                        .font(.zhuokai(19))
                     Text(verbatim: "日")
-                        .font(.kaiti(17))
-                        .baselineOffset(1.75)
+                        .font(.zhuokai(17))
                     // 竖线底边与数字基线对齐
                     Rectangle()
                         .fill(CalendarStyle.separator)
                         .frame(width: 1, height: 10)
-                        .padding(.leading, -1)
+                        .padding(.leading, 3)
                         .padding(.trailing, 4.5)
                     Text(verbatim: "\(today.year)")
-                        .font(.songti(19))
-                        .tracking(0.7)
+                        .font(.zhuokai(19))
                 }
                 if let lunar = source.lunarDay(for: today) {
                     Text(verbatim: "农历\(lunar.month)\(lunar.day)")
-                        .font(.kaiti(12.5))
-                        .tracking(-0.9)
+                        .font(.zhuokai(12.5))
                 }
             }
             .foregroundStyle(CalendarStyle.text)
-            .padding(.leading, 2)
-            .offset(y: 2.25)
+            .padding(.leading, 4)
             Spacer(minLength: 8)
             VStack(alignment: .trailing, spacing: 2) {
                 Text(verbatim: "第\(today.dayOfYear)天·第\(today.weekOfYear)周 \(today.zodiacSign)月")
@@ -62,7 +56,7 @@ struct CalendarWidgetView: View {
                     Text(verbatim: "\(ganZhi.year)·\(ganZhi.zodiac)年 \(ganZhi.month)月 \(ganZhi.day)日")
                 }
             }
-            .font(.system(size: 11))
+            .font(.zhuokai(11))
             .foregroundStyle(CalendarStyle.secondaryText)
             .offset(y: 5)
         }
@@ -74,7 +68,7 @@ struct CalendarWidgetView: View {
         HStack(spacing: 0) {
             ForEach(Array(["周日", "周一", "周二", "周三", "周四", "周五", "周六"].enumerated()), id: \.offset) { index, name in
                 Text(verbatim: name)
-                    .font(.kaiti(10.5))
+                    .font(.zhuokai(10.5))
                     .foregroundStyle(index == 0 || index == 6 ? CalendarStyle.weekendLabel : CalendarStyle.secondaryText)
                     .frame(maxWidth: .infinity)
                     .offset(y: -0.75)
@@ -133,7 +127,7 @@ private struct DayCell: View {
 
     private var number: some View {
         Text(verbatim: "\(day.date.day)")
-            .font(.system(size: 20, weight: .semibold))
+            .font(.zhuokai(20))
             .foregroundStyle(day.isToday ? .white : day.date.isWeekend ? CalendarStyle.weekendText : CalendarStyle.text)
             .frame(width: Metrics.todaySize.width, height: Metrics.todaySize.height)
             .background {
@@ -162,7 +156,7 @@ private struct DayCell: View {
                     }
                 }
             }
-            .font(.system(size: 11, weight: .semibold))
+            .font(.zhuokai(11))
         }
     }
 }
@@ -237,12 +231,8 @@ private extension Color {
 }
 
 private extension Font {
-    /// 楷体；小组件进程启动时由 DownloadableFonts 激活，否则会退回系统字体
-    static func kaiti(_ size: CGFloat) -> Font {
-        .custom("STKaitiSC-Bold", size: size)
-    }
-
-    static func songti(_ size: CGFloat) -> Font {
-        .custom("STSongti-SC-Bold", size: size)
+    /// 江西拙楷；小组件进程启动时由 BundledFont 注册，否则会退回系统字体
+    static func zhuokai(_ size: CGFloat) -> Font {
+        .custom(BundledFont.name, size: size)
     }
 }

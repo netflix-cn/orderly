@@ -3,36 +3,43 @@ import SwiftUI
 /// 大号日历小组件（344 × 344pt）
 struct CalendarWidgetView: View {
     let today: SolarDate
-    var source: any ChineseCalendarSource = MockChineseCalendar()
+    var source: any ChineseCalendarSource = BundledChineseCalendar.shared
 
     var body: some View {
         VStack(spacing: 0) {
             header
-                .frame(height: Metrics.headerHeight)
+                // 思源宋体的行高约为字号的 1.44 倍，居中放会把月份压到星期行上；改为把基线固定在头部内的同一位置
+                .alignmentGuide(.top) { $0[.lastTextBaseline] - Metrics.headerBaseline }
+                .frame(height: Metrics.headerHeight, alignment: .top)
             weekdayRow
                 .frame(height: Metrics.weekdayRowHeight)
             DayGrid(weeks: WeekCalendar(today: today).weeks, source: source)
         }
+        .padding(.top, Metrics.topPadding)
         .padding(.bottom, Metrics.bottomPadding)
+        .font(.app(size: 11))
     }
 
     private var header: some View {
-        HStack(alignment: .center, spacing: 0) {
+        // 月份、农历行、干支行落在同一条基线上
+        HStack(alignment: .lastTextBaseline, spacing: 0) {
             // 数字与汉字同一字体，按基线对齐即可
             HStack(alignment: .firstTextBaseline, spacing: 1) {
                 Text(verbatim: "\(today.month)")
-                    .font(.zhuokai(39))
+                    .font(.app(size: 39))
                 Text(verbatim: "月")
-                    .font(.zhuokai(35))
+                    .font(.app(size: 35))
             }
             .foregroundStyle(CalendarStyle.text)
-            VStack(alignment: .leading, spacing: -5.5) {
+            .fixedSize()
+            // 收紧两行的行距，让日期行顶端与月份数字顶端齐平
+            VStack(alignment: .leading, spacing: Metrics.dateLineSpacing) {
                 // 不用 Text 插值拼接：小组件里插值进来的 Text 不会显示
                 HStack(alignment: .firstTextBaseline, spacing: 0) {
                     Text(verbatim: "\(today.day)")
-                        .font(.zhuokai(19))
+                        .font(.app(size: 19))
                     Text(verbatim: "日")
-                        .font(.zhuokai(17))
+                        .font(.app(size: 17))
                     // 竖线底边与数字基线对齐
                     Rectangle()
                         .fill(CalendarStyle.separator)
@@ -40,25 +47,28 @@ struct CalendarWidgetView: View {
                         .padding(.leading, 3)
                         .padding(.trailing, 4.5)
                     Text(verbatim: "\(today.year)")
-                        .font(.zhuokai(19))
+                        .font(.app(size: 19))
                 }
                 if let lunar = source.lunarDay(for: today) {
                     Text(verbatim: "农历\(lunar.month)\(lunar.day)")
-                        .font(.zhuokai(12.5))
+                        .font(.app(size: 12.5))
                 }
             }
             .foregroundStyle(CalendarStyle.text)
             .padding(.leading, 4)
+            .fixedSize()
             Spacer(minLength: 8)
-            VStack(alignment: .trailing, spacing: 2) {
+            VStack(alignment: .trailing, spacing: Metrics.infoLineSpacing) {
                 Text(verbatim: "第\(today.dayOfYear)天·第\(today.weekOfYear)周 \(today.zodiacSign)月")
                 if let ganZhi = source.ganZhi(for: today) {
                     Text(verbatim: "\(ganZhi.year)·\(ganZhi.zodiac)年 \(ganZhi.month)月 \(ganZhi.day)日")
                 }
             }
-            .font(.zhuokai(11))
+            .font(.app(size: 11))
             .foregroundStyle(CalendarStyle.secondaryText)
-            .offset(y: 5)
+            // 仍放不下时整体缩小，不截断成省略号
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
         }
         .padding(.leading, Metrics.headerInset)
         .padding(.trailing, Metrics.headerTrailingInset)
@@ -68,7 +78,7 @@ struct CalendarWidgetView: View {
         HStack(spacing: 0) {
             ForEach(Array(["周日", "周一", "周二", "周三", "周四", "周五", "周六"].enumerated()), id: \.offset) { index, name in
                 Text(verbatim: name)
-                    .font(.zhuokai(10.5))
+                    .font(.app(size: 10.5))
                     .foregroundStyle(index == 0 || index == 6 ? CalendarStyle.weekendLabel : CalendarStyle.secondaryText)
                     .frame(maxWidth: .infinity)
                     .offset(y: -0.75)
@@ -122,12 +132,11 @@ private struct DayCell: View {
                 .offset(y: Metrics.lunarCenter * scale - Metrics.termSize.height / 2)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .opacity(day.isInMonth ? 1 : 0.4)
     }
 
     private var number: some View {
         Text(verbatim: "\(day.date.day)")
-            .font(.zhuokai(20))
+            .font(.app(size: 20))
             .foregroundStyle(day.isToday ? .white : day.date.isWeekend ? CalendarStyle.weekendText : CalendarStyle.text)
             .frame(width: Metrics.todaySize.width, height: Metrics.todaySize.height)
             .background {
@@ -156,7 +165,7 @@ private struct DayCell: View {
                     }
                 }
             }
-            .font(.zhuokai(11))
+            .font(.app(size: 11))
         }
     }
 }
@@ -193,13 +202,20 @@ private struct MoonPhaseIcon: View {
 /// 尺寸取自参考图（单位 pt）
 private enum Metrics {
     static let headerHeight: CGFloat = 46.5
+    /// 月份、农历行、干支行的基线到头部顶端的距离
+    static let headerBaseline: CGFloat = 34
+    /// 日期行与农历行、右侧两行之间的间距；思源宋体行高较大，取负值收紧
+    static let dateLineSpacing: CGFloat = -5.3
+    static let infoLineSpacing: CGFloat = -1.5
     static let headerInset: CGFloat = 20
     static let headerTrailingInset: CGFloat = 17.5
     static let weekdayRowHeight: CGFloat = 21.5
     static let gridInset: CGFloat = 7.5
     static let separatorInset: CGFloat = 17.5
+    /// 让月份离上边框与最后一行农历离下边框的距离相同（约 14.5pt），空间从日期区的行高里匀出
+    static let topPadding: CGFloat = 9
     static let bottomPadding: CGFloat = 8
-    /// 5 行时的行高，以及日期、农历中心到行顶分隔线的距离
+    /// 参考图的行高（无上边距时为 53.6pt），以及日期、农历中心到行顶分隔线的距离
     static let referenceRowHeight: CGFloat = 53.6
     static let numberCenter: CGFloat = 20.25
     static let lunarCenter: CGFloat = 41.75
@@ -231,8 +247,8 @@ private extension Color {
 }
 
 private extension Font {
-    /// 江西拙楷；小组件进程启动时由 BundledFont 注册，否则会退回系统字体
-    static func zhuokai(_ size: CGFloat) -> Font {
+    /// 思源宋体半粗；小组件进程启动时由 BundledFont 注册，否则会退回系统字体
+    static func app(size: CGFloat) -> Font {
         .custom(BundledFont.name, size: size)
     }
 }

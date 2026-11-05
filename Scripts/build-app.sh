@@ -5,6 +5,7 @@
 #   Scripts/build-app.sh                 # release 构建，ad-hoc 签名
 #   CONFIG=debug Scripts/build-app.sh    # debug 构建
 #   SIGN_IDENTITY="Apple Development: Name (TEAMID)" Scripts/build-app.sh
+#   SIGN_KEYCHAIN=<钥匙串文件>：只在该钥匙串里找证书（Scripts/sign-with-1password.sh 会设置）
 #
 # 注意：ad-hoc 签名的 App 每次重新构建后签名都会变化，
 # 系统会把它当成新 App，需要重新授予「完全磁盘访问权限」。
@@ -14,6 +15,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CONFIG="${CONFIG:-release}"
 SIGN_IDENTITY="${SIGN_IDENTITY:--}"
+KEYCHAIN_ARGS=()
+[[ -n "${SIGN_KEYCHAIN:-}" ]] && KEYCHAIN_ARGS=(--keychain "$SIGN_KEYCHAIN")
 APP_NAME="Orderly"
 WIDGET_NAME="OrderlyWidget"
 APP="$ROOT/build/$APP_NAME.app"
@@ -38,6 +41,8 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_DIR/$APP_NAME" "$APP/Contents/MacOS/$APP_NAME"
 cp "$ROOT/Resources/Info.plist" "$APP/Contents/Info.plist"
+# App 图标，由 Scripts/generate-app-icon.swift 生成（make app-icon）
+cp "$ROOT/Resources/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
 printf 'APPL????' > "$APP/Contents/PkgInfo"
 
 # 小组件扩展
@@ -50,11 +55,15 @@ for key in CFBundleShortVersionString CFBundleVersion; do
     /usr/libexec/PlistBuddy -c "Set :$key $value" "$APPEX/Contents/Info.plist"
 done
 
-# 界面字体：App 与小组件是两个进程，各自从自己的包内注册，所以各放一份
+# 界面字体及其许可证（OFL 要求随字体一起分发）：App 与小组件是两个进程，各自从自己的包内注册，所以各放一份
 for dir in "$APP" "$APPEX"; do
     mkdir -p "$dir/Contents/Resources/Fonts"
-    cp "$ROOT"/Resources/Fonts/*.ttf "$dir/Contents/Resources/Fonts/"
+    cp "$ROOT"/Resources/Fonts/* "$dir/Contents/Resources/Fonts/"
 done
+
+# 小组件的离线农历数据，由 Scripts/generate-chinese-calendar.swift 生成（make calendar-data）
+mkdir -p "$APPEX/Contents/Resources/Calendar"
+cp "$ROOT"/Resources/Calendar/*.json "$APPEX/Contents/Resources/Calendar/"
 
 # SwiftPM 生成的资源包（目前没有，预留）
 for bundle in "$BIN_DIR"/*.bundle; do
@@ -65,11 +74,11 @@ echo "▸ 签名（identity: ${SIGN_IDENTITY}）"
 # 先签扩展再签 App。不能用 --deep：它会给扩展套上 App 的 entitlements，扩展没有沙盒就不会被加载
 codesign --force --options runtime --timestamp=none \
     --entitlements "$ROOT/Resources/$WIDGET_NAME.entitlements" \
-    --sign "$SIGN_IDENTITY" \
+    --sign "$SIGN_IDENTITY" ${KEYCHAIN_ARGS[@]+"${KEYCHAIN_ARGS[@]}"} \
     "$APPEX"
 codesign --force --options runtime --timestamp=none \
     --entitlements "$ROOT/Resources/Orderly.entitlements" \
-    --sign "$SIGN_IDENTITY" \
+    --sign "$SIGN_IDENTITY" ${KEYCHAIN_ARGS[@]+"${KEYCHAIN_ARGS[@]}"} \
     "$APP"
 
 echo "✓ 已生成 $APP"

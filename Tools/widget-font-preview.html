@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>小组件字体预览</title>
+<!--
+  按 Sources/OrderlyWidget/CalendarWidgetView.swift 的尺寸与配色模拟 344×344pt 大号日历小组件，切换字体看实际效果。
+  需要通过本地服务打开（读取 ../Resources 下的字体和农历数据）：在仓库根目录运行
+    python3 -m http.server 8765 --bind 127.0.0.1
+  然后访问 http://localhost:8765/Tools/widget-font-preview.html
+  开源候选字体从 Google Fonts、jsDelivr 加载，需要联网。
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;600&family=ZCOOL+XiaoWei&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/lxgwwenkai-regular.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-screen-webfont@1.7.0/lxgwwenkaiscreen.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-neo-zhisong-webfont@1.0.0/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@chinese-fonts/zqfs@3.0.0/dist/ZhuqueFangsong-Regular/result.css">
+<style>
+  @font-face { font-family: "Orderly Noto Serif SC SemiBold"; src: url("../Resources/Fonts/NotoSerifSC-SemiBold.otf"); }
+
+  :root {
+    --bg: #f4f2ee;
+    --panel: #ffffff;
+    --text: #1f1d1a;
+    --muted: #6b665e;
+    --line: #e2ded6;
+    --accent: #3794e3;
+    --ok: #3f8f3a;
+    --warn: #b7791f;
+    --bad: #c2412d;
+    --stage: linear-gradient(135deg, #8aa4c8 0%, #b9a6c9 50%, #d8b59a 100%);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #161616;
+      --panel: #202020;
+      --text: #ece9e3;
+      --muted: #a39e95;
+      --line: #333;
+      --ok: #7cc474;
+      --warn: #e0a84a;
+      --bad: #ef7a63;
+      --stage: linear-gradient(135deg, #24324a 0%, #3b2f4a 50%, #4a3a2e 100%);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #161616; --panel: #202020; --text: #ece9e3; --muted: #a39e95; --line: #333;
+    --ok: #7cc474; --warn: #e0a84a; --bad: #ef7a63;
+    --stage: linear-gradient(135deg, #24324a 0%, #3b2f4a 50%, #4a3a2e 100%);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.6 -apple-system, "PingFang SC", system-ui, sans-serif;
+  }
+  .page { max-width: 1180px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 40px 0 4px; }
+  .lead { color: var(--muted); margin: 0 0 20px; }
+  .banner { display: none; background: color-mix(in srgb, var(--warn) 14%, var(--panel)); border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); border-radius: 10px; padding: 10px 14px; margin-bottom: 20px; }
+  .banner code { font-size: 12.5px; }
+
+  .main { display: grid; grid-template-columns: 340px 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 860px) { .main { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+  .field { margin-bottom: 16px; }
+  .field:last-child { margin-bottom: 0; }
+  .field > label, .field > .label { display: block; font-weight: 600; margin-bottom: 6px; }
+  select, input[type="date"] {
+    width: 100%; font: inherit; padding: 6px 8px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--bg); color: var(--text);
+  }
+  input[type="range"] { width: 100%; }
+  .radio { display: flex; gap: 6px; align-items: center; font-weight: 400; margin: 2px 0; }
+  .meta { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+  .coverage { font-size: 12.5px; margin-top: 4px; }
+  .coverage .missing { color: var(--bad); }
+  .coverage .full { color: var(--ok); }
+  .tag { display: inline-block; font-size: 11.5px; padding: 0 6px; border-radius: 999px; border: 1px solid currentColor; margin-right: 4px; }
+  .tag.ok { color: var(--ok); } .tag.warn { color: var(--warn); } .tag.bad { color: var(--bad); }
+
+  .stage {
+    background: var(--stage); border-radius: 14px; min-height: 420px;
+    display: flex; align-items: safe center; justify-content: safe center; padding: 32px 16px; overflow: auto;
+  }
+  .stage .widget { zoom: var(--zoom, 1.5); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px; margin-top: 12px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+  .card .thumb { background: var(--stage); border-radius: 10px; padding: 8px; display: flex; justify-content: center; }
+  .card h3 { font-size: 15px; margin: 10px 0 2px; }
+
+  /* —— 小组件（单位 px = pt，数值来自 CalendarWidgetView 的 Metrics 与 CalendarStyle） —— */
+  .widget {
+    --cal: "Orderly Noto Serif SC SemiBold"; --cal-weight: 400; --body: "Orderly Noto Serif SC SemiBold"; --body-weight: 400;
+    --fallback: "PingFang SC", system-ui;
+    width: 344px; height: 344px; flex: none; padding: 9px 0 8px; border-radius: 20px;
+    background: #292929; color: #fff9e8; font-size: 11px; line-height: normal;
+    display: flex; flex-direction: column; overflow: hidden;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, .35);
+    -webkit-font-smoothing: antialiased;
+  }
+  .widget .cal { font-family: var(--cal), var(--fallback); font-weight: var(--cal-weight); }
+  .widget .body { font-family: var(--body), var(--fallback); font-weight: var(--body-weight); }
+  /* 对应 Metrics.headerBaseline：月份基线固定在头部顶端以下 34pt，由脚本按实际字体量出后定位 */
+  .w-header { height: 46.5px; flex: none; position: relative; }
+  .w-header-row { position: absolute; left: 0; right: 0; top: 0; display: flex; align-items: last baseline; padding: 0 17.5px 0 20px; white-space: nowrap; }
+  .w-baseline { width: 0; height: 0; flex: none; }
+  .w-month { display: flex; align-items: baseline; gap: 1px; flex: none; }
+  .w-month .num { font-size: 39px; }
+  .w-month .unit { font-size: 35px; }
+  .w-date { display: flex; flex-direction: column; margin-left: 4px; flex: none; }
+  .w-date-line { display: flex; align-items: baseline; }
+  .w-date-line .num, .w-date-line .year { font-size: 19px; }
+  .w-date-line .unit { font-size: 17px; }
+  .w-date-line .sep { width: 1px; height: 10px; background: #444; margin: 0 4.5px 0 3px; flex: none; }
+  .w-lunar { font-size: 12.5px; margin-top: -5.3px; }
+  .w-spacer { flex: 1 1 auto; min-width: 8px; }
+  .w-right { flex: 0 1 auto; min-width: 0; text-align: right; color: #9b978e; font-size: calc(11px * var(--right-scale, 1)); }
+  .w-right .ganzhi { margin-top: -1.5px; }
+  .w-weekdays { height: 21.5px; flex: none; display: flex; padding: 0 7.5px; }
+  .w-weekdays span { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 10.5px; color: #9b978e; transform: translateY(-0.75px); }
+  .w-weekdays span.weekend { color: #9c8b68; }
+  .w-grid { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 7.5px; }
+  .w-row { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .w-row-sep { height: .5px; background: #444; margin: 0 10px; flex: none; }
+  .w-cells { flex: 1; display: flex; }
+  .w-cell { flex: 1; position: relative; }
+  .w-num {
+    position: absolute; left: 50%; top: var(--num-top); width: 40px; height: 26px; margin-left: -20px;
+    display: flex; align-items: center; justify-content: center; font-size: 20px; border-radius: 13px; white-space: nowrap;
+  }
+  .w-num.weekend { color: #ffe199; }
+  .w-num.today { background: #3794e3; color: #fff; }
+  .w-lunar-line {
+    position: absolute; left: -10px; right: -10px; top: var(--lunar-top); height: 15px;
+    display: flex; align-items: center; justify-content: center; gap: 3px; font-size: 11px; white-space: nowrap;
+  }
+  .w-term { width: 28px; height: 15px; border-radius: 4.5px; background: #73b34a; color: #fff; display: flex; align-items: center; justify-content: center; }
+  .w-moon { width: 11px; height: 11px; flex: none; transform: translateY(-0.75px); }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>小组件字体预览</h1>
+  <p class="lead">按 <code>CalendarWidgetView</code> 的尺寸、配色和农历数据模拟 344×344pt 大号日历小组件，切换字体看日期、农历、节气、干支的效果。App 现在打包的是思源宋体半粗。</p>
+  <div class="banner" id="banner"></div>
+
+  <div class="main">
+    <div class="panel">
+      <div class="field">
+        <label for="date">日期</label>
+        <input type="date" id="date" min="2026-01-01" max="2027-12-31">
+        <div class="meta">离线农历数据覆盖 2026-01-01 至 2027-12-31</div>
+      </div>
+      <div class="field">
+        <label for="calFont">日历文字字体</label>
+        <select id="calFont"></select>
+        <div class="meta" id="calMeta"></div>
+        <div class="coverage" id="calCoverage"></div>
+      </div>
+      <div class="field">
+        <label for="bodyFont">其他文字字体</label>
+        <select id="bodyFont"></select>
+        <div class="meta">只用于右上角「第 N 天·第 N 周 星座月」一行</div>
+        <div class="meta" id="bodyMeta"></div>
+        <div class="coverage" id="bodyCoverage"></div>
+      </div>
+      <div class="meta" style="margin:-8px 0 16px">缺字时与桌面上一样由系统字体（苹方）补上</div>
+      <div class="field">
+        <label for="zoom">缩放 <span id="zoomValue"></span></label>
+        <input type="range" id="zoom" min="1" max="3" step="0.25" value="1.5">
+      </div>
+      <div class="field">
+        <label for="fontFile">载入本地字体文件</label>
+        <input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2" multiple>
+        <div class="meta">载入后出现在两个字体列表的末尾，只在本页使用</div>
+      </div>
+    </div>
+    <div class="stage" id="stage"></div>
+  </div>
+
+  <h2>所有字体对比</h2>
+  <p class="lead">每张卡片用对应字体显示日历文字，「其他文字」一行仍用上面选择的字体。
+    <label class="radio" style="display:inline-flex"><input type="checkbox" id="sameBody"> 「其他文字」也用对应字体</label></p>
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+// 候选字体，第一项是 App 现在打包的字体。license 的级别：ok 可随 App 分发；warn 系统自带，可调用但不能打包或授权需自行确认
+const FONTS = [
+  { id: "noto-semibold", name: "思源宋体 半粗（现用）", family: '"Orderly Noto Serif SC SemiBold"', source: "本地 Resources/Fonts/NotoSerifSC-SemiBold.otf", license: "OFL 1.1", level: "ok" },
+  { id: "wenkai", name: "霞鹜文楷", family: '"LXGW WenKai"', source: "jsDelivr · lxgw-wenkai-webfont 1.7.0", license: "OFL 1.1", level: "ok" },
+  { id: "wenkai-screen", name: "霞鹜文楷 屏幕阅读版", family: '"LXGW WenKai Screen"', source: "jsDelivr · lxgw-wenkai-screen-webfont 1.7.0", license: "OFL 1.1", level: "ok" },
+  { id: "noto-serif", name: "思源宋体 常规", family: '"Noto Serif SC"', weight: 400, source: "Google Fonts · Noto Serif SC", license: "OFL 1.1", level: "ok" },
+  { id: "neo-zhisong", name: "霞鹜新致宋", family: '"LXGW Neo ZhiSong"', source: "jsDelivr · lxgw-neo-zhisong-webfont 1.0.0", license: "IPA 字体许可 1.0", level: "ok" },
+  { id: "zhuque", name: "朱雀仿宋（技术预览版）", family: '"Zhuque Fangsong (technical preview)"', source: "jsDelivr · @chinese-fonts/zqfs 3.0.0", license: "OFL 1.1", level: "ok" },
+  { id: "xiaowei", name: "站酷小薇", family: '"ZCOOL XiaoWei"', source: "Google Fonts · ZCOOL XiaoWei", license: "OFL 1.1", level: "ok" },
+  { id: "mashanzheng", name: "马善政楷书", family: '"Ma Shan Zheng"', source: "Google Fonts · Ma Shan Zheng", license: "OFL 1.1", level: "ok" },
+  { id: "songti", name: "宋体-简（系统）", family: '"Songti SC"', source: "macOS 自带", license: "系统自带，可直接调用，不能打包", level: "warn" },
+  { id: "pingfang", name: "苹方（系统）", family: '"PingFang SC"', source: "macOS 自带", license: "系统自带，可直接调用，不能打包", level: "warn" },
+];
+
+const WEEKDAYS = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+const ZODIAC_SIGNS = [[1, 20, "水瓶"], [2, 19, "双鱼"], [3, 21, "白羊"], [4, 20, "金牛"], [5, 21, "双子"], [6, 22, "巨蟹"],
+  [7, 23, "狮子"], [8, 23, "处女"], [9, 23, "天秤"], [10, 24, "天蝎"], [11, 23, "射手"], [12, 22, "摩羯"]];
+// 日期区行高：344 − 上边距 9 − 下边距 8 − 头部 46.5 − 星期行 21.5，平均分给 5 行；位置按参考行高 53.6 等比缩放
+const ROW_HEIGHT = (344 - 9 - 8 - 46.5 - 21.5) / 5;
+const ROW_SCALE = ROW_HEIGHT / 53.6;
+const NUM_TOP = 0.5 + 20.25 * ROW_SCALE - 13;
+const LUNAR_TOP = 0.5 + 41.75 * ROW_SCALE - 7.5;
+
+const DAY_MS = 86400000;
+const utc = (y, m, d) => new Date(Date.UTC(y, m - 1, d));
+const parseISO = (s) => { const [y, m, d] = s.split("-").map(Number); return utc(y, m, d); };
+const isoString = (date) => date.toISOString().slice(0, 10);
+const addDays = (date, n) => new Date(date.getTime() + n * DAY_MS);
+const dayOfYear = (date) => Math.round((date - utc(date.getUTCFullYear(), 1, 1)) / DAY_MS) + 1;
+function isoWeek(date) {
+  const thursday = addDays(date, 3 - (date.getUTCDay() + 6) % 7);
+  return 1 + Math.floor((thursday - utc(thursday.getUTCFullYear(), 1, 1)) / DAY_MS / 7);
+}
+function zodiacSign(date) {
+  const m = date.getUTCMonth() + 1, d = date.getUTCDate();
+  const sign = ZODIAC_SIGNS.filter(([sm, sd]) => m > sm || (m === sm && d >= sd)).pop();
+  return sign ? sign[2] : "摩羯";
+}
+
+let days = new Map();
+const fontById = (id) => FONTS.find((f) => f.id === id);
+const $ = (id) => document.getElementById(id);
+
+// —— 小组件 ——
+
+function moonIcon(phase) {
+  const outline = '<circle cx="5.5" cy="5.5" r="5.125" fill="none" stroke="#a6bfdf" stroke-width="0.75"/>';
+  const left = '<path d="M5.5 0 A5.5 5.5 0 0 0 5.5 11 Z" fill="#fbca06"/>';
+  const right = '<path d="M5.5 0 A5.5 5.5 0 0 1 5.5 11 Z" fill="#fbca06"/>';
+  const body = { new: outline, firstQuarter: outline + right, full: '<circle cx="5.5" cy="5.5" r="5.5" fill="#fbca06"/>', lastQuarter: outline + left }[phase];
+  return `<svg class="w-moon" viewBox="0 0 11 11">${body}</svg>`;
+}
+
+function widgetHTML(today) {
+  const info = days.get(isoString(today));
+  const y = today.getUTCFullYear(), m = today.getUTCMonth() + 1, d = today.getUTCDate();
+  const start = addDays(today, -today.getUTCDay() - 14);
+  let rows = "";
+  for (let r = 0; r < 5; r++) {
+    let cells = "";
+    for (let c = 0; c < 7; c++) {
+      const date = addDays(start, r * 7 + c);
+      const day = days.get(isoString(date));
+      const classes = ["w-num", "cal"];
+      if (+date === +today) classes.push("today"); else if (c === 0 || c === 6) classes.push("weekend");
+      let lunar = "";
+      if (day) {
+        lunar = day.solarTerm
+          ? `<span class="w-term">${day.solarTerm}</span>`
+          : `${day.moonPhase ? moonIcon(day.moonPhase) : ""}<span>${day.lunarDayName}</span>`;
+      }
+      cells += `<div class="w-cell"><div class="${classes.join(" ")}">${date.getUTCDate()}</div><div class="w-lunar-line cal">${lunar}</div></div>`;
+    }
+    rows += `<div class="w-row"><div class="w-row-sep"></div><div class="w-cells">${cells}</div></div>`;
+  }
+  return `
+    <div class="w-header"><div class="w-header-row">
+      <div class="w-month cal"><span class="num">${m}</span><span class="unit">月</span><span class="w-baseline"></span></div>
+      <div class="w-date cal">
+        <div class="w-date-line"><span class="num">${d}</span><span class="unit">日</span><span class="sep"></span><span class="year">${y}</span></div>
+        ${info ? `<div class="w-lunar">农历${info.lunarMonthName}${info.lunarDayName}</div>` : ""}
+      </div>
+      <div class="w-spacer"></div>
+      <div class="w-right">
+        <div class="body">第${dayOfYear(today)}天·第${isoWeek(today)}周 ${zodiacSign(today)}月</div>
+        ${info ? `<div class="ganzhi cal">${info.ganZhiYear}·${info.zodiac}年 ${info.ganZhiMonth}月 ${info.ganZhiDay}日</div>` : ""}
+      </div>
+    </div></div>
+    <div class="w-weekdays">${WEEKDAYS.map((w, i) => `<span class="cal${i === 0 || i === 6 ? " weekend" : ""}">${w}</span>`).join("")}</div>
+    <div class="w-grid">${rows}</div>`;
+}
+
+function renderWidget(container, today, calFont, bodyFont) {
+  const widget = document.createElement("div");
+  widget.className = "widget";
+  widget.style.setProperty("--cal", calFont.family);
+  widget.style.setProperty("--cal-weight", calFont.weight ?? 400);
+  widget.style.setProperty("--body", bodyFont.family);
+  widget.style.setProperty("--body-weight", bodyFont.weight ?? 400);
+  widget.style.setProperty("--num-top", `${NUM_TOP}px`);
+  widget.style.setProperty("--lunar-top", `${LUNAR_TOP}px`);
+  widget.innerHTML = widgetHTML(today);
+  container.replaceChildren(widget);
+  layoutHeader(widget);
+  return widget;
+}
+
+// 字体加载完成后要重新调用：行高随字体变化
+function layoutHeader(widget) {
+  placeHeaderBaseline(widget);
+  fitRightColumn(widget);
+}
+
+function placeHeaderBaseline(widget) {
+  const header = widget.querySelector(".w-header");
+  const row = widget.querySelector(".w-header-row");
+  row.style.top = "0px";
+  const headerBox = header.getBoundingClientRect();
+  const scale = headerBox.height / 46.5; // 去掉 zoom 的影响
+  const baseline = (widget.querySelector(".w-baseline").getBoundingClientRect().bottom - headerBox.top) / scale;
+  row.style.top = `${34 - baseline}px`;
+}
+
+// 右上两行放不下时整体缩小，最多到 80%（对应 minimumScaleFactor(0.8)）
+function fitRightColumn(widget) {
+  const right = widget.querySelector(".w-right");
+  right.style.removeProperty("--right-scale");
+  if (right.scrollWidth > right.clientWidth + 0.5) {
+    right.style.setProperty("--right-scale", Math.max(0.8, right.clientWidth / right.scrollWidth));
+  }
+}
+
+// —— 缺字检查：同一字符分别以两种不同的后备字体绘制，图像不同说明用到了后备字体 ——
+
+const usedChars = { cal: [], body: [] };
+const probe = document.createElement("canvas");
+probe.width = probe.height = 48;
+const probeContext = probe.getContext("2d", { willReadFrequently: true });
+const FALLBACK_A = '"Songti SC", "Times New Roman", serif';
+const FALLBACK_B = '"PingFang SC", "Courier New", monospace';
+const coverageCache = new Map();
+
+function glyph(font, ch) {
+  probeContext.clearRect(0, 0, 48, 48);
+  probeContext.font = font;
+  probeContext.fillText(ch, 4, 38);
+  return probeContext.getImageData(0, 0, 48, 48).data;
+}
+
+function sameAlpha(a, b) {
+  for (let i = 3; i < a.length; i += 4) if (a[i] !== b[i]) return false;
+  return true;
+}
+
+async function missingChars(font, chars) {
+  const key = `${font.id}|${chars.join("")}`;
+  if (!coverageCache.has(key)) {
+    coverageCache.set(key, (async () => {
+      const spec = `${font.weight ?? 400} 32px ${font.family}`;
+      try { await document.fonts.load(spec, chars.join("")); } catch { /* 系统字体或加载失败 */ }
+      return chars.filter((ch) => !sameAlpha(glyph(`${spec}, ${FALLBACK_A}`, ch), glyph(`${spec}, ${FALLBACK_B}`, ch)));
+    })());
+  }
+  return coverageCache.get(key);
+}
+
+async function coverageHTML(font, chars) {
+  const missing = await missingChars(font, chars);
+  if (missing.length === chars.length) return '<span class="missing">字体未加载（检查网络或是否通过本地服务打开）</span>';
+  if (missing.length === 0) return `<span class="full">${chars.length} 个用到的字全部覆盖</span>`;
+  return `<span class="missing">缺 ${missing.length} 字：${missing.join(" ")}</span>`;
+}
+
+function collectChars() {
+  const cal = new Set("0123456789月日年农历 ");
+  WEEKDAYS.join("").split("").forEach((ch) => cal.add(ch));
+  for (const day of days.values()) {
+    for (const value of [day.lunarMonthName, day.lunarDayName, day.solarTerm, day.ganZhiYear, day.zodiac, day.ganZhiMonth, day.ganZhiDay]) {
+      for (const ch of value ?? "") cal.add(ch);
+    }
+  }
+  const body = new Set("0123456789第天·周月 ");
+  ZODIAC_SIGNS.forEach(([, , name]) => [...name].forEach((ch) => body.add(ch)));
+  const visible = (set) => [...set].filter((ch) => ch.trim()).sort();
+  usedChars.cal = visible(cal);
+  usedChars.body = visible(body);
+}
+
+// —— 页面 ——
+
+function licenseTag(font) {
+  return `<span class="tag ${font.level}">${font.license}</span>`;
+}
+
+function fillSelects() {
+  for (const [id, fallback] of [["calFont", "noto-semibold"], ["bodyFont", "noto-semibold"]]) {
+    const select = $(id);
+    const current = select.value || fallback;
+    select.innerHTML = FONTS.map((f) => `<option value="${f.id}">${f.name}</option>`).join("");
+    select.value = FONTS.some((f) => f.id === current) ? current : fallback;
+  }
+}
+
+function selectedDate() {
+  return parseISO($("date").value || "2026-11-03");
+}
+
+async function update() {
+  const calFont = fontById($("calFont").value);
+  const bodyFont = fontById($("bodyFont").value);
+  $("zoomValue").textContent = `${$("zoom").value}×`;
+  $("stage").style.setProperty("--zoom", $("zoom").value);
+  $("calMeta").innerHTML = `${licenseTag(calFont)}${calFont.source}`;
+  $("bodyMeta").innerHTML = `${licenseTag(bodyFont)}${bodyFont.source}`;
+  const widget = renderWidget($("stage"), selectedDate(), calFont, bodyFont);
+  renderGrid(bodyFont);
+  $("calCoverage").innerHTML = "检查缺字…";
+  $("bodyCoverage").innerHTML = "检查缺字…";
+  $("calCoverage").innerHTML = await coverageHTML(calFont, usedChars.cal);
+  $("bodyCoverage").innerHTML = await coverageHTML(bodyFont, usedChars.body);
+  await document.fonts.ready;
+  layoutHeader(widget);
+}
+
+function renderGrid(bodyFont) {
+  const today = selectedDate();
+  const sameBody = $("sameBody").checked;
+  const grid = $("grid");
+  grid.replaceChildren();
+  for (const font of FONTS) {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `<div class="thumb"></div><h3>${font.name}</h3><div class="meta">${licenseTag(font)}${font.source}</div><div class="coverage">检查缺字…</div>`;
+    grid.append(card);
+    const widget = renderWidget(card.querySelector(".thumb"), today, font, sameBody ? font : bodyFont);
+    missingChars(font, usedChars.cal).then(async () => {
+      card.querySelector(".coverage").innerHTML = "日历文字：" + await coverageHTML(font, usedChars.cal);
+      await document.fonts.ready;
+      layoutHeader(widget);
+    });
+  }
+}
+
+async function addFontFiles(files) {
+  for (const file of files) {
+    const family = `Preview Upload ${FONTS.length}`;
+    try {
+      const face = new FontFace(family, await file.arrayBuffer());
+      await face.load();
+      document.fonts.add(face);
+      FONTS.push({ id: `upload-${FONTS.length}`, name: file.name, family: `"${family}"`, source: "本机文件", license: "自选文件，授权自行确认", level: "warn" });
+    } catch (error) {
+      alert(`无法载入 ${file.name}：${error.message}`);
+    }
+  }
+  fillSelects();
+  update();
+}
+
+async function start() {
+  if (location.protocol === "file:") {
+    $("banner").style.display = "block";
+    $("banner").innerHTML = '直接打开文件时，浏览器不允许读取本地字体和农历数据。请在仓库根目录运行 <code>python3 -m http.server 8765 --bind 127.0.0.1</code>，再访问 <code>http://localhost:8765/Tools/widget-font-preview.html</code>。';
+  }
+  try {
+    const response = await fetch("../Resources/Calendar/chinese-calendar.json");
+    const data = await response.json();
+    days = new Map(data.days.map((day) => [day.date, day]));
+  } catch {
+    days = new Map();
+  }
+  collectChars();
+  const now = new Date();
+  const today = isoString(utc(now.getFullYear(), now.getMonth() + 1, now.getDate()));
+  $("date").value = today >= "2026-01-01" && today <= "2027-12-31" ? today : "2026-11-03";
+  fillSelects();
+  for (const id of ["date", "calFont", "bodyFont", "zoom", "sameBody"]) $(id).addEventListener("input", update);
+  $("fontFile").addEventListener("change", (event) => addFontFiles(event.target.files));
+  update();
+}
+
+start();
+</script>
+</body>
+</html>

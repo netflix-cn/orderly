@@ -49,6 +49,10 @@ EOF
         build | test | run)
             EXTRA_ARGS=(-Xswiftc -vfsoverlay -Xswiftc "$FIX_DIR/overlay.yaml")
             ;;
+        *.swift)
+            # 直接运行脚本：编译选项必须放在脚本路径之前，之后的参数会传给脚本
+            exec "$SWIFT_BIN" -vfsoverlay "$FIX_DIR/overlay.yaml" "$@"
+            ;;
     esac
 fi
 

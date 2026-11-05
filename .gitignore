@@ -47,6 +47,7 @@ playground.xcworkspace
 # App Store Connect / 公证用的 API 密钥（AuthKey_XXXX.p8）
 *.p8
 # 环境变量与本地凭据（签名身份、公证账号密码等）
+/.signing.local.json
 .env
 .env.*
 !.env.example

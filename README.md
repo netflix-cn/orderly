@@ -15,9 +15,11 @@ macOS 磁盘清理工具。
 需要 Swift 6 工具链（Xcode 16+ 或 Command Line Tools 16+）。
 
 ```bash
-make run        # 打包 debug 版 build/Orderly.app 并启动
-make app        # 打包 release 版 build/Orderly.app
+make app-1password  # 从 1Password 取证书，生成 build/Orderly.app 和 build/Orderly-<版本>.dmg
+Scripts/sign-with-1password.sh make run  # 同样从 1Password 取证书，打包 debug 版并启动
 make test       # 运行单元测试
+make calendar-data  # 按天文算法重新生成小组件的离线农历数据
+make app-icon   # 重新绘制 App 图标 Resources/AppIcon.icns
 ```
 
 **必须通过 `.app` 启动来测试权限。** 用 `swift run` 或在终端直接运行可执行文件时，
@@ -27,12 +29,26 @@ make test       # 运行单元测试
 导致 Package.swift 无法链接、Foundation 无法构建；该脚本检测到这种情况时会自动绕过（不修改系统文件）。
 彻底解决的办法是重新安装 Command Line Tools，或安装 Xcode。
 
-ad-hoc 签名（默认）的 App 每次重新构建签名都会变化，系统会把它当成新 App，
-需要重新授予完全磁盘访问权限。日常开发建议用固定证书签名：
+打包统一从 1Password 取签名证书。首次在新检出中使用时，创建本地配置：
 
 ```bash
-SIGN_IDENTITY="Apple Development: Your Name (TEAMID)" make run
+cp .signing.example.json .signing.local.json
+chmod 600 .signing.local.json
+# 编辑 .signing.local.json，填入实际的 OP_SIGN_VAULT 和 OP_SIGN_ITEM（26 位 ID）
+Scripts/sign-with-1password.sh --check-config
+make app-1password
 ```
+
+`.signing.local.json` 已加入 Git 忽略规则，只保存保险库与条目 ID；可提交的 `.signing.example.json` 只含占位符。
+脚本按自身位置定位仓库根目录，自动读取本地配置；环境变量 `OP_SIGN_VAULT`、`OP_SIGN_ITEM` 优先，
+也可用 `OP_SIGN_CONFIG` 指定其他 JSON 配置文件。配置仅按数据解析，不执行其中的代码；
+`--check-config` 只检查配置格式，不访问 1Password，实际条目权限和证书内容在打包时校验。
+
+需要 1Password CLI（`op`）及有效授权，条目中应包含 p12 文件和保存导出密码的隐藏字段。
+脚本将证书导入临时钥匙串供签名，结束时清理，私钥不必留在登录钥匙串。
+取不到证书时会停止，不改用登录钥匙串或 ad-hoc 签名；构建与签名约定见 `AGENTS.md`。
+固定证书可保持完全磁盘访问权限与小组件的签名身份；换证书后系统会当成新 App，需重新授权。
+dmg 没有公证，在其他 Mac 上打开时需要在「隐私与安全性」里允许。
 
 ## 目录结构
 
@@ -52,30 +68,44 @@ Sources/OrderlyWidget/  桌面小组件扩展（打包为 Orderly.app/Contents/P
 ├── CalendarWidget      小组件定义与时间线（每天零点刷新）
 ├── CalendarWidgetView  大号日历界面
 ├── WeekCalendar        公历：前后五周排布、第几天/第几周、星座
-└── ChineseCalendar     农历、节气、月相、干支（目前为模拟数据）
-Resources/          Info.plist、entitlements（App 与小组件各一份）、Fonts/ 界面字体
-Scripts/            打包脚本
+└── ChineseCalendar     读取离线农历数据：农历、节气、月相、干支
+Resources/          Info.plist、entitlements（App 与小组件各一份）、AppIcon.icns 图标、Fonts/ 界面字体、Calendar/ 离线农历数据
+Scripts/            打包脚本、农历数据与 App 图标的生成脚本
+Tools/              开发辅助：widget-font-preview.html 小组件字体预览页
+AGENTS.md           项目规范、当前进度与协作约定的统一维护入口
+CLAUDE.md           Claude 初始化入口，加载并遵守 AGENTS.md
+.signing.example.json  可提交的 1Password 签名配置模板（占位符）
+.signing.local.json    本机签名配置，Git 忽略
 ```
 
 ## 字体
 
-App 和小组件的界面统一使用江西拙楷 2.0（黄煜臣，`Resources/Fonts/JiangxiZhuokai.ttf`）。
-打包时复制进 App 和小组件扩展各一份，启动时注册到本进程（`BundledFont`），不需要安装或联网。
+App 和小组件全部文字使用思源宋体半粗（Noto Serif SC SemiBold，`Resources/Fonts/NotoSerifSC-SemiBold.otf`，
+PostScript 名为 `NotoSerifSC-SemiBold`），来自 [notofonts/noto-cjk](https://github.com/notofonts/noto-cjk) 的简体中文子集，
+按 SIL Open Font License 1.1 授权，许可证见 `Resources/Fonts/NotoSerifSC-OFL.txt`。
+打包时字体与许可证复制进 App 和小组件扩展各一份，启动时注册到本进程（`BundledFont`），不需要安装或联网。
 
-- 字体只有一个字重、数字不等宽：`.bold()`、`.monospacedDigit()` 不起作用，层级靠字号区分
+- 只打包了半粗一个字重，`.bold()` 等不起作用，层级靠字号区分
 - 菜单栏、窗口标题、工具栏分段控件、确认对话框、右键菜单由系统绘制，仍是系统字体
 - 直接运行未打包的可执行文件（`swift run`）时找不到字体，会退回系统字体
+- 换字体前可以用 `Tools/widget-font-preview.html` 预览小组件效果（见 AGENTS.md）
 
 ## 桌面小组件
 
 大号「日历」小组件：星期、农历、节气、月相、干支纪年。日期区固定 5 行，本周在第 3 行，
-上下依次为前两周、前一周、后一周、后两周；不属于本月的日期变暗显示。
+上下依次为前两周、前一周、后一周、后两周；所有日期同样颜色显示，跨月的日期不变暗。
 
-- 农历、节气、月相、干支目前是 `MockChineseCalendar` 中的模拟数据，只覆盖公历 2026-10-10 至 2026-12-08；
-  超出范围的日期不显示农历行。替换为真实算法时实现 `ChineseCalendarSource` 即可
+- 农历、节气、月相、干支来自离线数据 `Resources/Calendar/chinese-calendar.json`，覆盖公历 2026-01-01 至 2027-12-31，
+  打包时复制进扩展；超出范围的日期不显示农历行和干支行。星座、当年第几天、第几周由 `SolarDate` 直接计算
+- 数据由 `Scripts/generate-chinese-calendar.swift` 按天文算法生成（`make calendar-data`，可用 `CALENDAR_FROM`、
+  `CALENDAR_TO` 调整范围）：节气用 VSOP87 计算太阳视黄经，朔望用 Meeus《天文算法》第 49 章，
+  农历按 GB/T 33661-2017 编排（北京时间，含冬至的月为十一月，无中气的月置闰）
+- 干支纪年和生肖以立春为界，干支纪月以「节」为界；数据中另有以正月初一为界的农历年（`lunarYear`）
+- 生成结果已与香港天文台 2026、2027 年公历与农历日期对照表逐日核对一致（农历月日、节气日期），
+  测试中再与系统的农历（ICU）逐日比对
 - 扩展必须启用 App Sandbox（见 `Resources/OrderlyWidget.entitlements`），不需要其他权限
-- 建议用固定证书签名（`SIGN_IDENTITY`），ad-hoc 签名每次构建都会变化，小组件可能不出现或不刷新
-- `make run` 启动一次 App 后，在桌面右键 →「编辑小组件」→ 搜索 Orderly，添加大号「日历」
+- 使用 `make app-1password` 从 1Password 取固定证书签名，保持小组件的签名身份
+- `Scripts/sign-with-1password.sh make run` 启动一次 App 后，在桌面右键 →「编辑小组件」→ 搜索 Orderly，添加大号「日历」
 
 ## 流程
 
@@ -110,7 +140,7 @@ App 和小组件的界面统一使用江西拙楷 2.0（黄煜臣，`Resources/F
 ## 已知限制
 
 - 只扫描当前用户的个人目录，不处理 `/Library`、`/private/var` 等需要管理员权限的位置
-- 尚未做 App 图标、多语言、设置页（大文件阈值等目前写在 `ScanConfiguration` 中）
+- 尚未做多语言、设置页（大文件阈值等目前写在 `ScanConfiguration` 中）
 
 ## 许可证
 

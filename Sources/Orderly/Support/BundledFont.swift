@@ -2,15 +2,15 @@ import CoreText
 import os
 import SwiftUI
 
-/// 界面字体：江西拙楷 2.0（黄煜臣）。字体文件由 Scripts/build-app.sh 复制到 Contents/Resources/Fonts，
+/// 界面字体：思源宋体半粗（Noto Serif SC SemiBold，SIL OFL 1.1）。字体文件由 Scripts/build-app.sh 复制到 Contents/Resources/Fonts，
 /// 启动时注册到本进程，不需要安装或联网。直接运行未打包的可执行文件时找不到字体，会退回系统字体
 enum BundledFont {
-    static let name = "jiangxizhuokai-Regular"
+    static let name = "NotoSerifSC-SemiBold"
     private static let logger = Logger(subsystem: "com.orderly.Orderly", category: "fonts")
 
     /// 必须在创建任何界面之前调用
     static func register() {
-        guard let url = Bundle.main.url(forResource: "JiangxiZhuokai", withExtension: "ttf", subdirectory: "Fonts") else {
+        guard let url = Bundle.main.url(forResource: "NotoSerifSC-SemiBold", withExtension: "otf", subdirectory: "Fonts") else {
             logger.error("App 包内没有字体文件")
             return
         }
@@ -22,8 +22,8 @@ enum BundledFont {
 }
 
 extension Font {
-    /// 与系统文本样式同字号的江西拙楷。字体只有一个字重，.bold() 等不起作用，层级靠字号区分；
-    /// 数字也不等宽，.monospacedDigit() 同样无效
+    /// 与系统文本样式同字号的思源宋体半粗。
+    /// 只打包了这一个字重，.bold() 等不起作用，层级靠字号区分
     static func app(_ style: TextStyle) -> Font {
         .custom(BundledFont.name, size: style.pointSize, relativeTo: style)
     }

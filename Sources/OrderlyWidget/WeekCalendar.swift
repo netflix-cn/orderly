@@ -71,8 +71,6 @@ struct SolarDate: Hashable, Comparable, Sendable {
 /// 日历中的一格
 struct CalendarDay: Identifiable, Sendable {
     let date: SolarDate
-    /// 是否与今天同月；否则是上月、下月的日期
-    let isInMonth: Bool
     let isToday: Bool
 
     var id: Int { date.julianDay }
@@ -92,7 +90,7 @@ struct WeekCalendar: Sendable {
         weeks = (0..<(2 * Self.surroundingWeeks + 1)).map { row in
             (0..<7).map { column in
                 let date = SolarDate(julianDay: start + row * 7 + column)
-                return CalendarDay(date: date, isInMonth: date.month == today.month, isToday: date == today)
+                return CalendarDay(date: date, isToday: date == today)
             }
         }
     }

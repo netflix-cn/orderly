@@ -12,6 +12,8 @@
 	</array>
 	<key>CFBundleExecutable</key>
 	<string>Orderly</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.orderly.Orderly</string>
 	<key>CFBundleInfoDictionaryVersion</key>

@@ -45,8 +45,7 @@ final class AppModel {
     }
 
     func showPermission() {
-        guard phase == .ready || phase == .results else { return }
-        results = nil
+        guard phase == .ready else { return }
         phase = .permission
     }
 

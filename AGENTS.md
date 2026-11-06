@@ -4,7 +4,7 @@
 面向使用者的说明见 [README.md](README.md)；两者冲突时以代码为准，并修正文档。
 项目规范与进度统一维护在本文件；[CLAUDE.md](CLAUDE.md) 是 Claude 初始化时加载本文件的入口，仅保留引用与加载要求。
 
-**快照时间：2026-11-05 17:37（UTC+8）。** 完成一项工作后，请更新「1. 当前进度」，不要只在对话里说明。
+**快照时间：2026-11-05 17:57（UTC+8）。** 完成一项工作后，请更新「1. 当前进度」，不要只在对话里说明。
 
 ---
 
@@ -12,7 +12,7 @@
 
 ### 1.1 版本库状态
 
-- 分支 `main`，HEAD 为 `22657f4`，比 `origin/main`（`e782865`）多 2 个提交，**均未推送**
+- 2026-11-05 资源审查结束时，`main` 和本地远程跟踪引用 `origin/main` 均为 `c06f9dd`。下表和 1.2 记录的是 11-03 的工作过程。
 - 2026-11-03 改写过历史：原 `319b70a` 去掉 `Resources/Fonts/JiangxiZhuokai.ttf` 后成为 `22657f4`，代码改动不变；`bundled-zhuokai-font` 分支同步指向 `22657f4`。现在没有任何分支包含江西拙楷
 - 其他工具（Codex）留下的引用 `refs/codex/turn-diffs/checkpoints/…` 里有一份含江西拙楷的目录快照，已按用户要求删除。现在所有引用都不再包含江西拙楷；旧对象只在本地 reflog 中，等 Git 自动清理。推送仍只推具体分支，不要用 `--all`、`--mirror`
 - 远程：`origin` = `git@github.com:netflix-cn/orderly.git`
@@ -71,6 +71,13 @@
 
 - 2026-11-05 已在本机 Codex 用户级技能目录安装 `ui-ux-pro-max`（上游提交 `b7d5353`），并用安装后的脚本验证了 SwiftUI 指南搜索和设计系统生成。
 - 2026-11-05 用 `ui-ux-pro-max` 评审主 App，以示例容量和权限离屏渲染 1040×700 浅色首页和 900×620 深色首页，并核对扫描、授权、清理流程源码。建议优先明确废纸篓的永久清空操作，并在首页按授权状态展示实际扫描范围。此次仅记录评审，未更改应用代码或执行扫描、清理。
+- 2026-11-05 审查 `c06f9dd` 及现有 `build/Orderly-0.1.0.dmg` 的第三方资源。主 App、扩展各附 Noto Serif SC SemiBold 与 OFL，均匹配上游 `Serif2.003`。DMG 内 App 的 13 个文件逐一匹配 `build/Orderly.app`。项目脚本生成的图标和日历 JSON 均逐字节复现。当前 Git 引用的可达历史只含 Noto 字体；旧 reflog 仍可找到江西拙楷。
+  - 已确认 `ScanModels.swift` 将受限符号 `apple.logo` 用于「macOS 系统」分组。本机 macOS 15.8 的 `CoreGlyphs.bundle/Contents/Resources/symbol_restrictions.strings` 将此符号限定于「通过 Apple 登录」，发布前应替换。
+  - 源码侧待核对或补充：字体预览页中霞鹜新致宋的 IPA 许可链接与原始字体替换指引；日历生成器中 Meeus 附录 III 所列成组系数的再分发依据。发布 App/DMG 未附项目自身的 MIT 许可。此次仅记录审查结果，未修改或重打发布包。
+
+- 2026-11-05 完成主 App 首页和结果清理页优化。首页按当前权限列出扫描范围，磁盘条同时标注已用比例与可用容量，扫描按钮采用较深渐变和静止待机状态。现有废纸篓改为手动勾选；底栏区分预计释放与移入废纸篓的容量，确认框单列清空现有废纸篓的后果。结果页可直接打开系统设置，在当前进程内保留勾选和分组，用户可在权限生效后主动重扫。新增 2 个回归测试，`make test` 共 40 项通过；用示例数据在 900×620 深色和 1040×700 浅色窗口核对首页、结果底栏及原生确认框。未用真实文件清理、变更系统授权、重打包或替换安装版本。
+
+- 2026-11-05 17:56 使用 `make app-1password` 构建本轮首页和结果清理页的手动验收包 `build/Orderly-0.1.0.dmg`（0.1.0 build 1，arm64，22,811,799 字节）。App、扩展和 DMG 均使用 `Orderly Dev 2036` 签名并通过严格校验。镜像完整性、扩展沙盒权限和 Applications 安装链接已核对，镜像内 App 的 13 个文件与本次构建逐一一致。SHA-256 为 `ccb30c52109277eab2c01e6bd651208a8b2afb326032dda814b449b5bd7914a9`。等待用户手动验收，未替换已安装的 App。
 
 ### 1.4 待办
 
@@ -107,7 +114,7 @@ Swift Package（`Package.swift`，`swift-tools-version: 6.0`），没有 Xcode �
 | 扫描规则 | `ScanRule` 协议（`Scanner/ScanRule.swift`），实现在 `Scanner/Rules/`。见下表 |
 | 文件归属到 App | `AppCatalog`：按 bundle ID、进程名、文档位置把扫描项归到已安装 App、系统、残留（leftover）或其他 |
 | 系统服务缓存保护 | `ScanPolicy.isProtectedCache`：iCloud、CloudKit、账户、家庭、家人共享等系统服务的缓存，以及 Orderly 自己的缓存，直接跳过 |
-| 结果页 | `ScanResultsModel`：按应用 / 按类型分组，三态勾选；默认只勾推荐项，所属 App 正在运行的不勾 |
+| 结果页 | `ScanResultsModel`：按应用 / 按类型分组，三态勾选；默认只勾推荐项，跳过所属 App 正在运行的项目。废纸篓由用户勾选；清理前区分永久清理、清空现有废纸篓和移到废纸篓 |
 | 清理 | `Cleaner.clean`：逐项先过 `SafetyGuard.validate` 再执行 `CleanAction`（`.delete`、`.deleteContents`、`.moveToTrash`） |
 | 删除前安全检查 | `SafetyGuard`：目标必须在个人目录内；不能是 `~/Library`、`~/Documents` 等关键目录本身；不能删除废纸篓目录本身；不清空符号链接 |
 | 磁盘占用、配色 | `Support/Theme.swift`（`Theme`、`DiskUsage`） |

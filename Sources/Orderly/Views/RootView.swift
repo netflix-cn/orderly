@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RootView: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         ZStack {
@@ -30,5 +31,11 @@ struct RootView: View {
         .font(.app(.body))
         // 界面文案目前只有中文，日期等格式也统一使用中文；加入多语言后移除
         .environment(\.locale, Locale(identifier: "zh_Hans_CN"))
-        .animation(.easeInOut(duration: 0.25), value: model.phase)    }
+        .animation(.easeInOut(duration: 0.25), value: model.phase)
+        .onChange(of: scenePhase) {
+            if scenePhase == .active && (model.phase == .ready || model.phase == .results) {
+                model.refreshPermission()
+            }
+        }
+    }
 }

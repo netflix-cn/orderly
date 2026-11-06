@@ -8,6 +8,13 @@ enum Theme {
         LinearGradient(colors: [gradientStart, gradientEnd], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
 
+    /// 首页扫描按钮承载白色文字，渐变最亮处也要留足对比度。
+    static let scanButtonGradient = LinearGradient(
+        colors: [Color(red: 0.03, green: 0.45, blue: 0.43), Color(red: 0.13, green: 0.36, blue: 0.67)],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+
     static func color(for category: ScanCategory) -> Color {
         switch category {
         case .junk: .orange

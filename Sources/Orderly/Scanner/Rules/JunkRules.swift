@@ -132,8 +132,8 @@ struct TrashRule: ScanRule {
 
     func scan(in context: ScanContext) async throws -> [ScanItem] {
         let item = context.makeItem(
-            url: context.url(".Trash"), category: category, kind: "废纸篓",
-            owner: .trash, action: .deleteContents, minimumSize: 1
+            url: context.url(".Trash"), category: category, kind: "清空废纸篓",
+            owner: .trash, action: .deleteContents, recommended: false, minimumSize: 1
         )
         return item.map { [$0] } ?? []
     }

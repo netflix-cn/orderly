@@ -6,25 +6,39 @@ struct HomeView: View {
     @State private var disk = DiskUsage.current()
 
     var body: some View {
+        let engine = ScanEngine.standard
+        let active = engine.activeRules(for: ScanConfiguration(hasFullDiskAccess: model.hasFullDiskAccess))
+        let activeIDs = Set(active.map(\.id))
+        let skipped = engine.rules.filter { !activeIDs.contains($0.id) }
+
         VStack(spacing: 0) {
-            Spacer(minLength: 24)
+            Spacer(minLength: 12)
 
             VStack(spacing: 8) {
                 Text("Orderly")
                     .font(.app(size: 34))
-                Text("让你的 Mac 保持井井有条")
+                Text("先扫描，再由你选择要清理的项目")
                     .foregroundStyle(.secondary)
             }
 
             ScanButton {
                 model.startScan()
             }
-            .padding(.vertical, 36)
+            .padding(.vertical, 24)
 
-            HStack(spacing: 16) {
-                ForEach(ScanCategory.allCases) { category in
-                    CategoryCard(category: category)
+            VStack(alignment: .leading, spacing: 10) {
+                Text("本次扫描范围")
+                    .font(.app(.title3))
+                HStack(spacing: 16) {
+                    ForEach(ScanCategory.allCases) { category in
+                        CategoryCard(
+                            category: category,
+                            activeTitles: active.filter { $0.category == category }.map(\.title),
+                            skippedTitles: skipped.filter { $0.category == category }.map(\.title)
+                        )
+                    }
                 }
+                .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: 760)
 
@@ -34,74 +48,82 @@ struct HomeView: View {
                     .padding(.top, 16)
             }
 
-            Spacer(minLength: 24)
+            Spacer(minLength: 12)
 
             PermissionFooter()
         }
-        .padding(32)
+        .padding(.horizontal, 32)
+        .padding(.vertical, 24)
         .onAppear { disk = DiskUsage.current() }
     }
 }
 
 private struct ScanButton: View {
     let action: () -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isHovering = false
-    @State private var isPulsing = false
 
     var body: some View {
         Button(action: action) {
             ZStack {
                 Circle()
-                    .stroke(Theme.heroGradient, lineWidth: 6)
-                    .frame(width: 176, height: 176)
-                    .scaleEffect(isPulsing ? 1.22 : 1)
-                    .opacity(isPulsing ? 0 : 0.5)
-
-                Circle()
-                    .fill(Theme.heroGradient)
+                    .fill(Theme.scanButtonGradient)
                     .frame(width: 176, height: 176)
                     .shadow(color: Theme.gradientEnd.opacity(0.35), radius: isHovering ? 26 : 16, y: 10)
 
                 VStack(spacing: 8) {
                     Image(systemName: "sparkle.magnifyingglass")
                         .font(.system(size: 36, weight: .semibold))
+                        .accessibilityHidden(true)
                     Text("开始扫描")
                         .font(.app(.title2))
                 }
                 .foregroundStyle(.white)
             }
-            .scaleEffect(isHovering ? 1.03 : 1)
+            .scaleEffect(isHovering && !reduceMotion ? 1.03 : 1)
             .contentShape(Circle())
         }
         .buttonStyle(.plain)
         .keyboardShortcut(.defaultAction)
         .onHover { isHovering = $0 }
-        .animation(.spring(duration: 0.3), value: isHovering)
-        .onAppear {
-            withAnimation(.easeOut(duration: 2).repeatForever(autoreverses: false)) {
-                isPulsing = true
-            }
-        }
+        .animation(reduceMotion ? nil : .spring(duration: 0.3), value: isHovering)
     }
 }
 
 private struct CategoryCard: View {
     let category: ScanCategory
+    let activeTitles: [String]
+    let skippedTitles: [String]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            SymbolTile(symbol: category.symbol, tint: Theme.color(for: category), size: 34)
-            Text(category.title)
-                .font(.app(.title3))
-            Text(category.summary)
+            HStack(spacing: 9) {
+                SymbolTile(symbol: category.symbol, tint: Theme.color(for: category), size: 30)
+                    .accessibilityHidden(true)
+                Text(category.title)
+                    .font(.app(.title3))
+                if activeTitles.isEmpty {
+                    Label("需授权", systemImage: "lock.fill")
+                        .font(.app(.callout))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Text(activeTitles.isEmpty || category == .largeFile ? category.summary : activeTitles.joined(separator: "、"))
                 .font(.app(.callout))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+            if !activeTitles.isEmpty && !skippedTitles.isEmpty {
+                Label("授权后可扫\(skippedTitles.joined(separator: "、"))", systemImage: "lock")
+                    .font(.app(.callout))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             Spacer(minLength: 0)
         }
         .padding(16)
         .frame(maxWidth: .infinity, minHeight: 130, alignment: .topLeading)
         .background(.background.secondary, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -112,6 +134,8 @@ private struct DiskUsageBar: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Label(usage.name, systemImage: "internaldrive")
+                    .font(.app(.callout))
+                Text("已用 \(usage.used.formattedBytes)（\(usage.fraction, format: .percent.precision(.fractionLength(0)))）")
                     .font(.app(.callout))
                 Spacer()
                 Text("可用 \(usage.available.formattedBytes)，共 \(usage.total.formattedBytes)")
@@ -130,6 +154,7 @@ private struct DiskUsageBar: View {
         }
         .padding(16)
         .background(.background.secondary, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -138,13 +163,18 @@ private struct PermissionFooter: View {
 
     var body: some View {
         if model.hasFullDiskAccess {
-            Label("已获得完全磁盘访问权限", systemImage: "checkmark.shield.fill")
-                .font(.app(.callout))
-                .foregroundStyle(.green)
+            Label {
+                Text("已获得完全磁盘访问权限")
+            } icon: {
+                Image(systemName: "checkmark.shield.fill")
+                    .foregroundStyle(.green)
+            }
+            .font(.app(.callout))
+            .foregroundStyle(.secondary)
         } else {
             HStack(spacing: 6) {
-                Label("未获得完全磁盘访问权限，部分位置不会被扫描", systemImage: "exclamationmark.shield.fill")
-                    .foregroundStyle(.orange)
+                Label("完全磁盘访问权限未开启", systemImage: "lock.shield")
+                    .foregroundStyle(.secondary)
                 Button("去授权") { model.showPermission() }
                     .buttonStyle(.link)
             }

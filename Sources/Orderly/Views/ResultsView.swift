@@ -7,6 +7,7 @@ struct ResultsView: View {
     @State private var isConfirmingClean = false
 
     var body: some View {
+        let summary = results.cleanupSummary
         NavigationSplitView {
             ResultsSidebar(results: results)
                 .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 440)
@@ -18,7 +19,8 @@ struct ResultsView: View {
                 ContentUnavailableView {
                     Label { Text("没有发现可清理的项目").font(.app(.title2)) } icon: { Image(systemName: "checkmark.seal") }
                 } description: {
-                    Text("你的 Mac 很整洁。").font(.app(.body))
+                    Text(results.skippedRuleTitles.isEmpty ? "你的 Mac 很整洁。" : "本次扫描范围内没有发现项目。")
+                        .font(.app(.body))
                 }
             } else {
                 ContentUnavailableView {
@@ -55,7 +57,7 @@ struct ResultsView: View {
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            CleanBar(results: results) {
+            CleanBar(results: results, summary: summary) {
                 isConfirmingClean = true
             }
         }
@@ -63,26 +65,31 @@ struct ResultsView: View {
             results.focusedGroupID = results.groups.first?.id
         }
         .confirmationDialog(
-            "清理已选择的 \(results.selectedCount) 项（\(results.selectedSize.formattedBytes)）？",
-            isPresented: $isConfirmingClean
+            "处理已选的 \(results.selectedCount) 项？",
+            isPresented: $isConfirmingClean,
+            titleVisibility: .visible
         ) {
-            Button("清理", role: .destructive) {
+            Button(summary.actionTitle, role: .destructive) {
                 model.cleanSelected()
             }
             Button("取消", role: .cancel) {}
         } message: {
-            Text(confirmationMessage)
+            Text(confirmationMessage(for: summary))
         }
     }
 
-    private var confirmationMessage: String {
-        let selected = results.selectedItems
-        let trashed = selected.filter { $0.action == .moveToTrash }
-        var lines = ["缓存、日志等可重建的数据将被永久删除。"]
-        if !trashed.isEmpty {
-            lines.append("\(trashed.count) 个用户文件（大文件、安装包）将移到废纸篓，可以恢复。")
+    private func confirmationMessage(for summary: ScanResultsModel.CleanupSummary) -> String {
+        var lines: [String] = []
+        if let size = summary.existingTrashBytes {
+            lines.append("清空现有废纸篓，永久删除其中的全部内容（扫描时为 \(size.formattedBytes)）。")
         }
-        if selected.contains(where: { results.isRunning($0.owner) }) {
+        if summary.deletionCount > 0 {
+            lines.append("永久清理 \(summary.deletionCount) 项（\(summary.deletionBytes.formattedBytes)），删除后无法恢复。")
+        }
+        if summary.moveToTrashCount > 0 {
+            lines.append("将 \(summary.moveToTrashCount) 项（\(summary.moveToTrashBytes.formattedBytes)）移到废纸篓，可在清空前恢复。")
+        }
+        if summary.includesRunningApp {
             lines.append("部分所属 App 正在运行，建议先退出这些 App。")
         }
         return lines.joined(separator: "\n")
@@ -114,20 +121,24 @@ private struct ResultsSidebar: View {
         .safeAreaInset(edge: .top, spacing: 0) {
             if !results.skippedRuleTitles.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
-                    Label("部分位置未扫描", systemImage: "exclamationmark.shield.fill")
+                    Label(model.hasFullDiskAccess ? "已获得完全磁盘访问权限" : "部分位置需要授权",
+                          systemImage: model.hasFullDiskAccess ? "checkmark.shield" : "lock")
                         .font(.app(.callout))
-                        .foregroundStyle(.orange)
-                    Text("缺少完全磁盘访问权限，未扫描：\(results.skippedRuleTitles.joined(separator: "、"))")
+                    Text("本次未扫描：\(results.skippedRuleTitles.joined(separator: "、"))")
                         .font(.app(.caption))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    Button("去授权") { model.showPermission() }
-                        .buttonStyle(.link)
-                        .font(.app(.caption))
+                    if model.hasFullDiskAccess {
+                        Button("重新扫描以包含这些位置") { model.startScan() }
+                    } else {
+                        Button("打开系统设置授权") { FullDiskAccess.openSystemSettings() }
+                    }
                 }
+                .buttonStyle(.link)
+                .font(.app(.callout))
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(12)
-                .background(.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .background(.background.secondary, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .padding(.horizontal, 10)
                 .padding(.bottom, 6)
             }
@@ -301,6 +312,7 @@ private struct ItemRow: View {
 
 private struct CleanBar: View {
     let results: ScanResultsModel
+    let summary: ScanResultsModel.CleanupSummary
     let onClean: () -> Void
 
     var body: some View {
@@ -310,16 +322,20 @@ private struct CleanBar: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("已选择 \(results.selectedCount) 项")
                         .font(.app(.title3))
-                    Text("共发现 \(results.items.count) 项，\(results.totalSize.formattedBytes)")
-                        .font(.app(.caption))
+                    Text(spaceDescription)
+                        .font(.app(.callout))
                         .foregroundStyle(.secondary)
+                    if summary.existingTrashBytes != nil {
+                        Label("将永久清空现有废纸篓", systemImage: "exclamationmark.triangle")
+                            .font(.app(.callout))
+                    }
                 }
                 Spacer()
-                Button("勾选推荐项") { results.selectRecommended() }
+                Button("仅选推荐项") { results.selectRecommended() }
                 Button("全部取消") { results.deselectAll() }
                     .disabled(results.selectedCount == 0)
                 Button(action: onClean) {
-                    Text("清理 \(results.selectedSize.formattedBytes)")
+                    Text(summary.actionTitle)
                         .frame(minWidth: 120)
                 }
                 .buttonStyle(.borderedProminent)
@@ -331,5 +347,19 @@ private struct CleanBar: View {
             .padding(.vertical, 12)
         }
         .background(Color(nsColor: .windowBackgroundColor))
+    }
+
+    private var spaceDescription: String {
+        if results.selectedCount == 0 {
+            return "共发现 \(results.items.count) 项，\(results.totalSize.formattedBytes)"
+        }
+        var parts: [String] = []
+        if summary.deletionCount > 0 || summary.existingTrashBytes != nil {
+            parts.append("预计释放 \(summary.estimatedFreedBytes.formattedBytes)")
+        }
+        if summary.moveToTrashCount > 0 {
+            parts.append("移到废纸篓 \(summary.moveToTrashBytes.formattedBytes)（清空后释放）")
+        }
+        return parts.joined(separator: " · ")
     }
 }

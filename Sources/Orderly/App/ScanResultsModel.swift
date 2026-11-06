@@ -50,6 +50,25 @@ final class ScanResultsModel {
         }
     }
 
+    /// 废纸篓本身是一条扫描项；其大小是扫描时的估算，执行时清空其中的全部内容。
+    struct CleanupSummary {
+        var deletionCount = 0
+        var deletionBytes: Int64 = 0
+        var existingTrashBytes: Int64?
+        var moveToTrashCount = 0
+        var moveToTrashBytes: Int64 = 0
+        var includesRunningApp = false
+
+        var estimatedFreedBytes: Int64 { deletionBytes + (existingTrashBytes ?? 0) }
+
+        var actionTitle: String {
+            if moveToTrashCount > 0 && deletionCount == 0 && existingTrashBytes == nil { return "移到废纸篓" }
+            if moveToTrashCount == 0 && deletionCount == 0 && existingTrashBytes != nil { return "清空废纸篓" }
+            if moveToTrashCount == 0 && deletionCount > 0 { return "永久清理" }
+            return "清理所选项目"
+        }
+    }
+
     let skippedRuleTitles: [String]
     let duration: Duration
 
@@ -72,7 +91,7 @@ final class ScanResultsModel {
             ?? Set(NSWorkspace.shared.runningApplications.compactMap { $0.bundleIdentifier?.lowercased() })
         selection = []
         // 默认只勾选推荐清理、且所属 App 未在运行的项目
-        selection = Set(items.filter { $0.isRecommended && !isRunning($0.owner) }.map(\.id))
+        selectRecommended()
         rebuildGroups()
         focusedGroupID = groups.first?.id
     }
@@ -89,6 +108,24 @@ final class ScanResultsModel {
     var selectedItems: [ScanItem] { items.filter { selection.contains($0.id) } }
     var selectedSize: Int64 { selectedItems.reduce(0) { $0 + $1.size } }
     var selectedCount: Int { selection.count }
+
+    var cleanupSummary: CleanupSummary {
+        var summary = CleanupSummary()
+        for item in items where selection.contains(item.id) {
+            switch item.action {
+            case .moveToTrash:
+                summary.moveToTrashCount += 1
+                summary.moveToTrashBytes += item.size
+            case .deleteContents where item.owner == .trash:
+                summary.existingTrashBytes = item.size
+            case .delete, .deleteContents:
+                summary.deletionCount += 1
+                summary.deletionBytes += item.size
+            }
+            if isRunning(item.owner) { summary.includesRunningApp = true }
+        }
+        return summary
+    }
 
     // MARK: - 勾选
 
